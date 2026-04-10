@@ -4,6 +4,7 @@
 // 基于 ROADMAP.md 和各阶段目录状态计算整体进度
 
 const path = require('path');
+const fs = require('fs');
 const utils = require('./utils.cjs');
 const phase = require('./phase.cjs');
 
@@ -40,7 +41,17 @@ function calculateProgress(cwd) {
       if (phaseInfo.has_context) steps++;
       if (phaseInfo.has_plans) steps++;
       if (phaseInfo.summaries && phaseInfo.summaries.length > 0) steps++;
-      if (phaseInfo.has_verification) steps++;
+      // Content-based verification: only count if VERIFICATION.md contains PASS (STATE-02)
+      if (phaseInfo.has_verification) {
+        const verFiles = fs.readdirSync(phaseInfo.directory);
+        const verFile = verFiles.find(f => f.toUpperCase().includes('VERIFICATION'));
+        if (verFile) {
+          const verContent = utils.readFile(path.join(phaseInfo.directory, verFile));
+          if (verContent && /\bPASS\b/i.test(verContent)) {
+            steps++;
+          }
+        }
+      }
     }
 
     return { phase: num, progress: Math.round((steps / total) * 100) };
