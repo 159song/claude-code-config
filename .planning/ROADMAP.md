@@ -65,8 +65,8 @@ Plans:
   4. agent-contracts.md 参考文档存在且定义了每个 agent 类型的输入格式、输出格式和错误处理规则
 **Plans:** 2 plans
 Plans:
-- [ ] 03-01-PLAN.md — Add contracts, completion markers, and native API fields to 5 agent definitions + create agent-contracts.md reference
-- [ ] 03-02-PLAN.md — Update 6 workflow files with contract-based invocation, completion parsing, retry logic, and config-driven models
+- [x] 03-01-PLAN.md — Add contracts, completion markers, and native API fields to 5 agent definitions + create agent-contracts.md reference
+- [x] 03-02-PLAN.md — Update 6 workflow files with contract-based invocation, completion parsing, retry logic, and config-driven models
 
 ### Phase 4: Session Management
 **Goal**: 用户可以随时暂停工作、跨会话恢复上下文、并让系统自动推进到下一步，长任务不再被迫一次完成
