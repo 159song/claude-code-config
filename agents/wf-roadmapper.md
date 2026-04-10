@@ -1,6 +1,7 @@
 ---
 name: wf-roadmapper
 description: 基于项目上下文和需求文档生成阶段路线图
+model: inherit
 tools:
   - Read
   - Write
@@ -8,6 +9,22 @@ tools:
   - Glob
   - Grep
 ---
+
+<input_contract>
+## Input Contract
+
+### Required
+| Field | Type | Description |
+|-------|------|-------------|
+| project_md | filepath | Path to PROJECT.md |
+| requirements_md | filepath | Path to REQUIREMENTS.md |
+
+### Optional
+| Field | Type | Description |
+|-------|------|-------------|
+| research_summary | filepath | Path to research SUMMARY.md if exists |
+| config | object | Agent configuration from config.json |
+</input_contract>
 
 # WF Roadmapper Agent
 
@@ -19,9 +36,9 @@ tools:
 ## 输入
 
 执行前必须阅读：
-- `.planning/PROJECT.md` — 项目上下文
-- `.planning/REQUIREMENTS.md` — 需求文档
-- `.planning/research/SUMMARY.md` — 研究摘要（如存在）
+- `.planning/PROJECT.md` -- 项目上下文
+- `.planning/REQUIREMENTS.md` -- 需求文档
+- `.planning/research/SUMMARY.md` -- 研究摘要（如存在）
 
 ## 阶段划分原则
 
@@ -62,8 +79,6 @@ tools:
 | 2 | {{name}} | {{desc}} | Phase 1 | 中 |
 | 3 | {{name}} | {{desc}} | Phase 1, 2 | 高 |
 
----
-
 ## Phase 1: 项目基础设施
 
 **目标:** 建立可运行的项目骨架和开发环境
@@ -76,8 +91,6 @@ tools:
 
 **需求覆盖:** FR-1（部分）
 
----
-
 ## Phase 2: {{name}}
 
 **目标:** {{goal}}
@@ -86,11 +99,9 @@ tools:
 - {{deliverable_1}}
 - {{deliverable_2}}
 
-**依赖:** Phase 1 — 需要项目骨架就绪
+**依赖:** Phase 1 -- 需要项目骨架就绪
 
 **需求覆盖:** FR-2, FR-3, NFR-1
-
----
 ```
 
 ## 需求映射
@@ -103,10 +114,10 @@ tools:
 
 | 需求 | Phase 1 | Phase 2 | Phase 3 | Phase 4 |
 |------|---------|---------|---------|---------|
-| FR-1 | ✅ | | | |
-| FR-2 | | ✅ | | |
-| FR-3 | | ✅ | ✅ | |
-| NFR-1 | | | | ✅ |
+| FR-1 | pass | | | |
+| FR-2 | | pass | | |
+| FR-3 | | pass | pass | |
+| NFR-1 | | | | pass |
 ```
 
 ## 验证
@@ -117,3 +128,49 @@ tools:
 - [ ] 无循环依赖
 - [ ] 第一个阶段无外部依赖
 - [ ] 阶段粒度合理
+
+<output_contract>
+## Output Contract
+
+### Artifacts
+| Artifact | Required | Description |
+|----------|----------|-------------|
+| ROADMAP.md | Yes | Project roadmap in `.planning/` |
+
+### Completion Marker
+
+任务完成后，输出以下 JSON 完成标记作为最终输出：
+
+```json
+{
+  "status": "complete|partial|failed",
+  "artifacts": ["<filepath>"],
+  "summary": "<brief description>"
+}
+```
+
+### Error Handling
+
+| Condition | Status | Behavior |
+|-----------|--------|----------|
+| Missing required input | failed | Summary explains what's missing |
+| Requirements unclear | partial | Summary lists phases defined so far |
+| Roadmap complete | complete | Full ROADMAP.md with all phases and requirement mapping |
+</output_contract>
+
+## 完成标记
+
+任务完成后，输出以下 JSON 完成标记作为**最终输出**。输出完成标记后不再执行任何操作。
+
+状态值：
+- `"complete"` -- 所有工作成功完成
+- `"partial"` -- 部分完成，剩余工作已保存供后续继续（context 预算不足或阻塞问题）
+- `"failed"` -- 无法完成，错误详情在 summary 中
+
+```json
+{
+  "status": "complete",
+  "artifacts": [".planning/ROADMAP.md"],
+  "summary": "Roadmap generated with X phases covering all requirements"
+}
+```
