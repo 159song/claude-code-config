@@ -13,6 +13,7 @@ const progress = require('./lib/progress.cjs');
 const git = require('./lib/git.cjs');
 const config = require('./lib/config.cjs');
 const init = require('./lib/init.cjs');
+const validate = require('./lib/validate.cjs');
 
 // 解析 --cwd 参数（D-12）
 const args = process.argv.slice(2);
@@ -50,7 +51,10 @@ switch (command) {
   case 'config':
     config.run(cwd);
     break;
+  case 'validate':
+    validate.run(cwd, subArgs);
+    break;
   default:
-    process.stderr.write('WF Tools v1.0.0\n用法: wf-tools [--cwd <path>] <command>\n命令: init|state|roadmap|phase|progress|commit|config\n');
+    process.stderr.write('WF Tools v1.0.0\n用法: wf-tools [--cwd <path>] <command>\n命令: init|state|roadmap|phase|progress|commit|config|validate\n');
     process.exit(1);
 }
