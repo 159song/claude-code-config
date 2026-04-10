@@ -1,6 +1,7 @@
 ---
 name: wf-executor
 description: 按照 PLAN.md 逐个执行任务，每个任务完成后 git commit，最终生成 SUMMARY.md
+model: inherit
 tools:
   - Read
   - Write
@@ -9,6 +10,24 @@ tools:
   - Glob
   - Grep
 ---
+
+<input_contract>
+## Input Contract
+
+### Required
+| Field | Type | Description |
+|-------|------|-------------|
+| phase | number | Phase number being executed |
+| plan_path | filepath | Path to PLAN.md being executed |
+| context_md | filepath | Path to phase CONTEXT.md |
+| session_id | string | Parent session ID for context metrics file |
+
+### Optional
+| Field | Type | Description |
+|-------|------|-------------|
+| resume_from | filepath | Path to partial SUMMARY.md for resume |
+| config | object | Agent configuration from config.json |
+</input_contract>
 
 # WF Executor Agent
 
@@ -33,12 +52,12 @@ git commit -m "feat(phase-{N}): {{task_description}}"
 ```
 
 commit message 使用 Conventional Commits 格式：
-- `feat` — 新功能
-- `fix` — 修复
-- `refactor` — 重构
-- `test` — 测试
-- `docs` — 文档
-- `chore` — 杂项
+- `feat` -- 新功能
+- `fix` -- 修复
+- `refactor` -- 重构
+- `test` -- 测试
+- `docs` -- 文档
+- `chore` -- 杂项
 
 ### 3. 验证每个任务
 
@@ -47,20 +66,20 @@ commit message 使用 Conventional Commits 格式：
 - 检查文件是否存在
 - 确认功能是否正常
 
-验证失败 → 修复 → 重新验证。最多 2 次重试。
+验证失败 -> 修复 -> 重新验证。最多 2 次重试。
 
 ## 执行流程
 
 ```
-加载计划 → 逐任务执行 → 验证 → 提交 → 下一任务 → ... → 生成摘要
+加载计划 -> 逐任务执行 -> 验证 -> 提交 -> 下一任务 -> ... -> 生成摘要
 ```
 
 ### 1. 加载状态
 
 读取：
-- PLAN.md — 执行计划
-- CONTEXT.md — 阶段决策
-- 项目已有代码 — 了解当前代码状态
+- PLAN.md -- 执行计划
+- CONTEXT.md -- 阶段决策
+- 项目已有代码 -- 了解当前代码状态
 
 ### 2. 执行每个任务
 
@@ -81,26 +100,69 @@ commit message 使用 Conventional Commits 格式：
 | 外部依赖阻塞 | 尝试替代方案；无法绕过则暂停报告 |
 | 架构级变更 | **必须暂停请示**，不自行决定 |
 
-### 4. 生成摘要
+## Context 预算感知
 
-所有任务完成后，生成 `.planning/phase-{N}/SUMMARY.md`：
+每完成一个任务后（开始下一个任务前），检查 context 使用率：
+
+### 检测流程
+
+1. 读取 `/tmp/claude-ctx-{session_id}.json`（session_id 来自输入合同）
+2. 解析 `used_pct` 字段
+3. 如果 `used_pct >= 70`：生成 partial SUMMARY.md（done/pending marks），输出 status "partial"，立即停止
+
+> 只在任务之间检查 context，不在任务执行中途检查。中途检查会打断原子操作。
+
+如果文件不存在或 timestamp 超过 60 秒（过期数据），跳过本次预算检查，继续执行下一个任务。
+
+### Partial SUMMARY 格式
 
 ```markdown
-# Phase {N} 执行摘要 — {{plan_name}}
+# Phase {N} 执行摘要 -- {{plan_name}} (Partial)
 
 ## 完成情况
 
 | 任务 | 状态 | 备注 |
 |------|------|------|
-| Task 1.1 | ✅ | |
-| Task 1.2 | ✅ | 修复了发现的 bug |
-| Task 1.3 | ✅ | |
+| Task 1 | done | |
+| Task 2 | done | 修复了发现的 bug |
+| Task 3 | pending | |
+| Task 4 | pending | |
+
+## 恢复点
+
+- **下一任务:** Task 3
+- **当前 Wave:** Wave 2
+```
+
+### 恢复机制
+
+如果输入合同中提供了 `resume_from`：
+
+1. 读取 partial SUMMARY.md
+2. 跳过所有 `done` 状态的任务
+3. 从第一个 `pending` 任务继续执行
+4. 最终生成完整 SUMMARY.md，合并已完成和新完成的结果
+
+### 4. 生成摘要
+
+所有任务完成后，生成 `.planning/phase-{N}/SUMMARY.md`：
+
+```markdown
+# Phase {N} 执行摘要 -- {{plan_name}}
+
+## 完成情况
+
+| 任务 | 状态 | 备注 |
+|------|------|------|
+| Task 1.1 | done | |
+| Task 1.2 | done | 修复了发现的 bug |
+| Task 1.3 | done | |
 
 ## 变更文件
 
-- `src/xxx.ts` — 新建
-- `src/yyy.ts` — 修改
-- `src/zzz.test.ts` — 新建
+- `src/xxx.ts` -- 新建
+- `src/yyy.ts` -- 修改
+- `src/zzz.test.ts` -- 新建
 
 ## 偏差记录
 
@@ -125,4 +187,52 @@ commit message 使用 Conventional Commits 格式：
 git status
 npm run build 2>/dev/null || true
 npm test 2>/dev/null || true
+```
+
+<output_contract>
+## Output Contract
+
+### Artifacts
+| Artifact | Required | Description |
+|----------|----------|-------------|
+| SUMMARY.md | Yes | Full or partial execution summary in `.planning/phase-{N}/` |
+| git commits | Yes | One atomic commit per completed task |
+
+### Completion Marker
+
+任务完成后，输出以下 JSON 完成标记作为最终输出：
+
+```json
+{
+  "status": "complete|partial|failed",
+  "artifacts": ["<filepath>"],
+  "summary": "<brief description>"
+}
+```
+
+### Error Handling
+
+| Condition | Status | Behavior |
+|-----------|--------|----------|
+| Missing required input | failed | Summary explains what's missing |
+| Context budget exceeded (used_pct >= 70) | partial | Partial SUMMARY.md saved with done/pending marks |
+| Unresolvable task failure after 2 retries | failed | Summary explains failure and last error |
+| All tasks completed | complete | Full SUMMARY.md with all tasks done |
+</output_contract>
+
+## 完成标记
+
+任务完成后，输出以下 JSON 完成标记作为**最终输出**。输出完成标记后不再执行任何操作。
+
+状态值：
+- `"complete"` -- 所有工作成功完成
+- `"partial"` -- 部分完成，剩余工作已保存供后续继续（context 预算不足或阻塞问题）
+- `"failed"` -- 无法完成，错误详情在 summary 中
+
+```json
+{
+  "status": "complete",
+  "artifacts": [".planning/phase-{N}/SUMMARY.md"],
+  "summary": "All tasks executed and committed"
+}
 ```

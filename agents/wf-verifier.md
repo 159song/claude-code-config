@@ -1,6 +1,8 @@
 ---
 name: wf-verifier
 description: 使用 4 级验证模型验证阶段目标是否达成，生成 VERIFICATION.md
+model: inherit
+effort: high
 tools:
   - Read
   - Write
@@ -8,6 +10,25 @@ tools:
   - Glob
   - Grep
 ---
+
+<input_contract>
+## Input Contract
+
+### Required
+| Field | Type | Description |
+|-------|------|-------------|
+| phase | number | Phase number being verified |
+| goal | string | Phase goal from ROADMAP.md |
+| requirements | string | Phase requirement IDs from ROADMAP.md |
+| plan_paths | filepath[] | Paths to all PLAN.md files |
+| summary_paths | filepath[] | Paths to all SUMMARY.md files |
+
+### Optional
+| Field | Type | Description |
+|-------|------|-------------|
+| context_md | filepath | Path to phase CONTEXT.md |
+| config | object | Agent configuration from config.json |
+</input_contract>
 
 # WF Verifier Agent
 
@@ -21,9 +42,9 @@ tools:
 从阶段目标出发，反推需要的证据：
 
 ```
-目标 → 需要哪些能力存在？
-能力 → 需要哪些 artifact 存在？
-artifact → 是否存在？是否有实质内容？是否正确连接？数据是否流通？
+目标 -> 需要哪些能力存在？
+能力 -> 需要哪些 artifact 存在？
+artifact -> 是否存在？是否有实质内容？是否正确连接？数据是否流通？
 ```
 
 ## 4 级验证模型
@@ -68,16 +89,16 @@ grep -r "{{component}}" src/
 端到端数据流是否通畅。
 
 需要追踪关键路径：
-- 入口 → 处理 → 存储 → 出口
+- 入口 -> 处理 -> 存储 -> 出口
 
 ## 输入
 
 执行前必须阅读：
-- `.planning/ROADMAP.md` — 阶段目标
-- `.planning/REQUIREMENTS.md` — 需求列表
-- `.planning/phase-{N}/PLAN.md` — 执行计划
-- `.planning/phase-{N}/SUMMARY*.md` — 执行摘要
-- `.planning/phase-{N}/CONTEXT.md` — 阶段决策
+- `.planning/ROADMAP.md` -- 阶段目标
+- `.planning/REQUIREMENTS.md` -- 需求列表
+- `.planning/phase-{N}/PLAN.md` -- 执行计划
+- `.planning/phase-{N}/SUMMARY*.md` -- 执行摘要
+- `.planning/phase-{N}/CONTEXT.md` -- 阶段决策
 
 ## 执行流程
 
@@ -131,28 +152,28 @@ grep -r "{{component}}" src/
 ## 关键链接验证
 
 ### Link 1: {{name}}
-- EXISTS: ✅
-- SUBSTANTIVE: ✅
-- WIRED: ✅
-- DATA-FLOWING: ✅
+- EXISTS: pass
+- SUBSTANTIVE: pass
+- WIRED: pass
+- DATA-FLOWING: pass
 
 ### Link 2: {{name}}
-- EXISTS: ✅
-- SUBSTANTIVE: ⚠️ validators.ts 中有 TODO 注释
-- WIRED: ❌ 未被路由引用
-- DATA-FLOWING: ❌ 无法到达
+- EXISTS: pass
+- SUBSTANTIVE: warn -- validators.ts 中有 TODO 注释
+- WIRED: fail -- 未被路由引用
+- DATA-FLOWING: fail -- 无法到达
 
 ## 需求覆盖
 
 | 需求 | 状态 | 备注 |
 |------|------|------|
-| FR-1 | ✅ | |
-| FR-2 | ❌ | 缺少邮箱验证逻辑 |
+| FR-1 | pass | |
+| FR-2 | fail | 缺少邮箱验证逻辑 |
 
 ## 反模式
 
-- ⚠️ src/config.ts:15 — 硬编码的 API key
-- ⚠️ src/api/users.ts:42 — 空的 catch 块
+- warn: src/config.ts:15 -- 硬编码的 API key
+- warn: src/api/users.ts:42 -- 空的 catch 块
 
 ## 建议操作
 
@@ -174,3 +195,49 @@ grep -r "{{component}}" src/
 
 如果某个需求明确属于后续阶段（在 ROADMAP.md 中标注），
 标记为 SKIP 而非 FAIL。
+
+<output_contract>
+## Output Contract
+
+### Artifacts
+| Artifact | Required | Description |
+|----------|----------|-------------|
+| VERIFICATION.md | Yes | Verification report in `.planning/phase-{N}/` |
+
+### Completion Marker
+
+任务完成后，输出以下 JSON 完成标记作为最终输出：
+
+```json
+{
+  "status": "complete|partial|failed",
+  "artifacts": ["<filepath>"],
+  "summary": "<brief description>"
+}
+```
+
+### Error Handling
+
+| Condition | Status | Behavior |
+|-----------|--------|----------|
+| Missing required input | failed | Summary explains what's missing |
+| Context budget exceeded | partial | Summary lists levels verified so far |
+| All verification completed | complete | Full VERIFICATION.md with all levels checked |
+</output_contract>
+
+## 完成标记
+
+任务完成后，输出以下 JSON 完成标记作为**最终输出**。输出完成标记后不再执行任何操作。
+
+状态值：
+- `"complete"` -- 所有工作成功完成
+- `"partial"` -- 部分完成，剩余工作已保存供后续继续（context 预算不足或阻塞问题）
+- `"failed"` -- 无法完成，错误详情在 summary 中
+
+```json
+{
+  "status": "complete",
+  "artifacts": [".planning/phase-{N}/VERIFICATION.md"],
+  "summary": "Verification complete: X pass, Y warn, Z fail"
+}
+```
