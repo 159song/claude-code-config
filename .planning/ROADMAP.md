@@ -12,8 +12,8 @@ WF 的优化路径从底层向上推进：先夯实 CLI 工具基础（每个后
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: CLI Foundation** - 模块化 wf-tools.cjs 并实现复合初始化命令，消除 context 浪费
-- [ ] **Phase 2: State Safety** - 所有状态变更通过 CLI 命令完成，杜绝直接文件修改导致的腐坏
+- [x] **Phase 1: CLI Foundation** - 模块化 wf-tools.cjs 并实现复合初始化命令，消除 context 浪费
+- [x] **Phase 2: State Safety** - 所有状态变更通过 CLI 命令完成，杜绝直接文件修改导致的腐坏
 - [ ] **Phase 3: Agent Contracts** - 定义 agent 完成标记、交接模式和 context 预算，实现可靠自动化
 - [ ] **Phase 4: Session Management** - 支持工作暂停、恢复和智能续接，让长任务可中断
 - [ ] **Phase 5: Workflow Enhancement** - 增强工作流健壮性，补齐阶段管理和配置能力
@@ -49,10 +49,10 @@ Plans:
   5. 阶段转换（begin-phase, advance-plan）通过 CLI 命令原子执行，自动更新进度和状态
 **Plans:** 4 plans
 Plans:
-- [ ] 02-01-PLAN.md — Fix nested YAML parsing and implement frontmatter CRUD (get/set/merge/patch/validate)
-- [ ] 02-02-PLAN.md — Create validate.cjs module for health check and auto-repair
-- [ ] 02-03-PLAN.md — Implement phase transition commands and fix content-based verification
-- [ ] 02-04-PLAN.md — Migrate workflow files from direct STATE.md writes to CLI commands
+- [x] 02-01-PLAN.md — Fix nested YAML parsing and implement frontmatter CRUD (get/set/merge/patch/validate)
+- [x] 02-02-PLAN.md — Create validate.cjs module for health check and auto-repair
+- [x] 02-03-PLAN.md — Implement phase transition commands and fix content-based verification
+- [x] 02-04-PLAN.md — Migrate workflow files from direct STATE.md writes to CLI commands
 
 ### Phase 3: Agent Contracts
 **Goal**: 每个 agent 有明确的输入输出合同、完成标记和 context 预算规则，工作流可靠检测 agent 完成并正确交接
@@ -104,8 +104,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. CLI Foundation | 0/3 | Planning | - |
-| 2. State Safety | 0/4 | Planning | - |
+| 1. CLI Foundation | 3/3 | Complete | 2026-04-10 |
+| 2. State Safety | 4/4 | Complete | 2026-04-10 |
 | 3. Agent Contracts | 0/? | Not started | - |
 | 4. Session Management | 0/? | Not started | - |
 | 5. Workflow Enhancement | 0/? | Not started | - |
