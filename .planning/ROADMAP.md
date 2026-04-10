@@ -31,7 +31,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. 所有 4 个 hook 路径与 settings.json 一致并正常触发（可通过 hook 日志验证）
   4. 命令文件中不再包含 `{{WF_ROOT}}` 占位符，全部替换为运行时可解析的真实路径
   5. wf-tools.cjs 支持 --cwd 参数和自动 findProjectRoot，在任意子目录下均可正确执行
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 01-01-PLAN.md — Modularize wf-tools.cjs into router + 7 lib/ modules with findProjectRoot
+- [ ] 01-02-PLAN.md — Implement compound init command with sub-modes
+- [ ] 01-03-PLAN.md — Fix hook paths in settings.json and replace all {{WF_ROOT}} placeholders
 
 ### Phase 2: State Safety
 **Goal**: 所有对 STATE.md 和 ROADMAP.md 的变更都通过 CLI 命令完成，消除直接文件修改造成的格式腐坏和并行冲突
@@ -95,7 +99,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. CLI Foundation | 0/? | Not started | - |
+| 1. CLI Foundation | 0/3 | Planning | - |
 | 2. State Safety | 0/? | Not started | - |
 | 3. Agent Contracts | 0/? | Not started | - |
 | 4. Session Management | 0/? | Not started | - |
