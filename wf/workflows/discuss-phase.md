@@ -5,6 +5,8 @@
 产出文件：
 - `.planning/phase-{N}/CONTEXT.md` — 阶段上下文和决策记录
 - `.planning/phase-{N}/DISCUSSION-LOG.md` — 讨论过程记录
+
+> **参考:** Agent 合同定义见 `wf/references/agent-contracts.md`
 </purpose>
 
 <flags>
@@ -128,11 +130,27 @@ AI 自主选择推荐方案，汇总为决策表：
 对于复杂决策，启动并行研究 agent：
 
 ```javascript
+// MODEL = config.agents.models.researcher || "haiku"
+
 Agent({
   subagent_type: "wf-researcher",
-  prompt: "比较 {{选项A}} vs {{选项B}} 在 {{项目上下文}} 中的适用性..."
+  model: MODEL,
+  prompt: `
+    ## Input (per contract)
+    - topic: "比较 {{选项A}} vs {{选项B}} 在 {{项目上下文}} 中的适用性"
+    - tech_stack: {{tech_stack}}
+    - decisions: {{existing_decisions}}
+
+    完成后输出 JSON 完成标记。
+  `
 })
 ```
+
+### 完成标记解析
+
+Researcher 返回后，提取 JSON 完成标记：
+- `"complete"` → 研究结果附加到决策点描述中
+- `"failed"` → 重试一次，仍失败则基于已有信息做决策
 
 研究结果附加到决策点描述中，帮助用户做出更好的选择。
 </step>
