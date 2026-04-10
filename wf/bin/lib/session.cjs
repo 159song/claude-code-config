@@ -108,4 +108,116 @@ function generateContinueHere(handoff) {
   return lines.join('\n');
 }
 
-module.exports = { createHandoff, readHandoff, deleteHandoff, generateContinueHere };
+// ---- CLI sub-command handlers ----
+
+// 允许的 step 值白名单（T-04-08）
+const VALID_STEPS = ['discuss', 'plan', 'execute', 'verify'];
+
+/**
+ * 从参数数组中解析 --flag value 对
+ * @param {string[]} args - 参数数组
+ * @param {string} flag - 标志名（不含 --）
+ * @returns {string|null}
+ */
+function parseFlag(args, flag) {
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === `--${flag}` && i + 1 < args.length) {
+      return args[i + 1];
+    }
+  }
+  return null;
+}
+
+/**
+ * CLI: wf-tools session pause --phase N --plan M --step S --stopped_at "msg"
+ * @param {string} cwd
+ * @param {string[]} args
+ */
+function sessionPause(cwd, args) {
+  const phaseRaw = parseFlag(args, 'phase');
+  const planRaw = parseFlag(args, 'plan');
+  const stepRaw = parseFlag(args, 'step');
+  const stoppedAt = parseFlag(args, 'stopped_at') || '';
+
+  // T-04-06: phase 必须是整数
+  const phase = phaseRaw ? parseInt(phaseRaw, 10) : NaN;
+  if (isNaN(phase)) {
+    utils.error('--phase 必须是整数');
+    process.exit(1);
+  }
+
+  // T-04-08: step 必须在白名单内
+  const step = stepRaw || 'discuss';
+  if (!VALID_STEPS.includes(step)) {
+    utils.error('--step 必须是: ' + VALID_STEPS.join(', '));
+    process.exit(1);
+  }
+
+  const plan = planRaw ? parseInt(planRaw, 10) : 0;
+
+  try {
+    const result = createHandoff(cwd, { phase, plan, step, stopped_at: stoppedAt });
+    utils.output(result);
+  } catch (e) {
+    utils.error(e.message);
+    process.exit(1);
+  }
+}
+
+/**
+ * CLI: wf-tools session resume — 读取 HANDOFF.json，输出内容，然后清理
+ * @param {string} cwd
+ * @param {string[]} args
+ */
+function sessionResume(cwd, args) {
+  const handoff = readHandoff(cwd);
+  if (!handoff) {
+    utils.output({ success: false, error: 'No HANDOFF.json found' });
+    process.exit(1);
+  }
+
+  // T-04-05: 验证 step 字段在白名单内
+  if (handoff.step && !VALID_STEPS.includes(handoff.step)) {
+    utils.output({ success: false, error: 'Invalid step in HANDOFF.json: ' + handoff.step });
+    process.exit(1);
+  }
+
+  // T-04-06: 验证 phase 是整数
+  if (handoff.phase != null && !Number.isInteger(handoff.phase)) {
+    utils.output({ success: false, error: 'Invalid phase in HANDOFF.json' });
+    process.exit(1);
+  }
+
+  deleteHandoff(cwd);
+  utils.output({ success: true, handoff: handoff, cleaned: true });
+}
+
+/**
+ * CLI: wf-tools session status — 检查 HANDOFF.json 状态（不删除）
+ * @param {string} cwd
+ */
+function sessionStatus(cwd) {
+  const handoff = readHandoff(cwd);
+  utils.output({ has_handoff: handoff !== null, handoff: handoff });
+}
+
+/**
+ * 命令分发入口
+ * @param {string} cwd - 项目根目录
+ * @param {string[]} args - 子命令参数
+ */
+function run(cwd, args) {
+  const sub = args[0];
+  if (sub === 'pause') {
+    sessionPause(cwd, args.slice(1));
+  } else if (sub === 'resume') {
+    sessionResume(cwd, args.slice(1));
+  } else if (sub === 'status') {
+    sessionStatus(cwd);
+  } else {
+    utils.error('用法: wf-tools session [pause|resume|status]');
+    process.exit(1);
+  }
+}
+
+module.exports = { createHandoff, readHandoff, deleteHandoff, generateContinueHere, run };

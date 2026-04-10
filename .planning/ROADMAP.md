@@ -79,9 +79,9 @@ Plans:
   4. session-state hook 输出结构化 JSON（而非原始 markdown），工作流可直接解析使用
 **Plans:** 3 plans
 Plans:
-- [ ] 04-01-PLAN.md — Rewrite SessionStart hook to Node.js with structured JSON output + create session.cjs persistence module
+- [x] 04-01-PLAN.md — Rewrite SessionStart hook to Node.js with structured JSON output + create session.cjs persistence module
 - [ ] 04-02-PLAN.md — Create /wf-pause and /wf-resume commands with workflow, CLI integration, and settings.json update
-- [ ] 04-03-PLAN.md — Create /wf-next auto-advance command with lifecycle detection and Skill() routing
+- [x] 04-03-PLAN.md — Create /wf-next auto-advance command with lifecycle detection and Skill() routing
 
 ### Phase 5: Workflow Enhancement
 **Goal**: 工作流覆盖更多实际场景（自治执行、阶段动态调整、配置管理），减少卡顿和误报
