@@ -12,6 +12,7 @@ const phase = require('./lib/phase.cjs');
 const progress = require('./lib/progress.cjs');
 const git = require('./lib/git.cjs');
 const config = require('./lib/config.cjs');
+const init = require('./lib/init.cjs');
 
 // 解析 --cwd 参数（D-12）
 const args = process.argv.slice(2);
@@ -29,8 +30,7 @@ const subArgs = args.slice(1);
 
 switch (command) {
   case 'init':
-    // init.cjs 由 Plan 02 实现，暂时返回 planning_dir
-    core.output({ planning_dir: path.join(cwd, '.planning') });
+    init.run(cwd, args.slice(1));
     break;
   case 'state':
     state.run(cwd, subArgs);
