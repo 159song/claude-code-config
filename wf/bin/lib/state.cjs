@@ -244,6 +244,143 @@ function stateJson(cwd) {
 }
 
 /**
+ * 批量更新 frontmatter 键值对
+ * 用法: wf-tools state patch --key1 val1 --key2 val2
+ * @param {string} cwd - 项目根目录
+ * @param {string[]} args - --key value 参数对
+ */
+function statePatch(cwd, args) {
+  const statePath = path.join(cwd, '.planning', 'STATE.md');
+  const content = utils.readFile(statePath);
+  if (!content) {
+    utils.error('STATE.md 不存在');
+    process.exit(1);
+  }
+
+  const { frontmatter, body } = parseFrontmatter(content);
+  const updated = [];
+
+  // 解析 --key value 参数对 (T-02-01: 验证键名格式)
+  let i = 0;
+  while (i < args.length) {
+    if (args[i].startsWith('--') && i + 1 < args.length) {
+      const key = args[i].slice(2);
+      if (!VALID_KEY_PATTERN.test(key)) {
+        utils.error(`无效的键名: ${key}`);
+        process.exit(1);
+      }
+      const value = parseYamlValue(args[i + 1]);
+      frontmatter[key] = value;
+      updated.push(key);
+      i += 2;
+    } else {
+      i++;
+    }
+  }
+
+  if (updated.length === 0) {
+    utils.error('用法: wf-tools state patch --key1 val1 --key2 val2');
+    process.exit(1);
+  }
+
+  // 重新序列化并写回
+  const newFm = serializeFrontmatter(frontmatter);
+  const newContent = `---\n${newFm}\n---\n${body}`;
+  utils.writeFile(statePath, newContent);
+  utils.output({ success: true, updated });
+}
+
+/**
+ * 深度合并 JSON 到 frontmatter
+ * 用法: wf-tools state merge '{"key":"value"}'
+ * @param {string} cwd - 项目根目录
+ * @param {string[]} args - [jsonString]
+ */
+function stateMerge(cwd, args) {
+  let patch;
+  try {
+    patch = JSON.parse(args[0]);
+  } catch {
+    utils.error('无效 JSON');
+    process.exit(1);
+  }
+
+  // T-02-02: 只接受普通对象，不接受数组
+  if (Array.isArray(patch) || typeof patch !== 'object' || patch === null) {
+    utils.error('合并数据必须是 JSON 对象');
+    process.exit(1);
+  }
+
+  const statePath = path.join(cwd, '.planning', 'STATE.md');
+  const content = utils.readFile(statePath);
+  if (!content) {
+    utils.error('STATE.md 不存在');
+    process.exit(1);
+  }
+
+  const { frontmatter, body } = parseFrontmatter(content);
+
+  // 一级深度合并：如果双方都是非 null 对象，递归合并子键；否则覆盖
+  for (const key of Object.keys(patch)) {
+    const patchVal = patch[key];
+    const existingVal = frontmatter[key];
+    if (patchVal !== null && typeof patchVal === 'object' && !Array.isArray(patchVal) &&
+        existingVal !== null && typeof existingVal === 'object' && !Array.isArray(existingVal)) {
+      // 合并子键
+      for (const subKey of Object.keys(patchVal)) {
+        existingVal[subKey] = patchVal[subKey];
+      }
+    } else {
+      frontmatter[key] = patchVal;
+    }
+  }
+
+  // 重新序列化并写回
+  const newFm = serializeFrontmatter(frontmatter);
+  const newContent = `---\n${newFm}\n---\n${body}`;
+  utils.writeFile(statePath, newContent);
+  utils.output({ success: true, merged: Object.keys(patch) });
+}
+
+/**
+ * 验证 STATE.md 的 frontmatter 结构
+ * @param {string} cwd - 项目根目录
+ */
+function stateValidate(cwd) {
+  const statePath = path.join(cwd, '.planning', 'STATE.md');
+  const content = utils.readFile(statePath);
+  const issues = [];
+
+  if (!content) {
+    utils.output({ valid: false, issues: ['STATE.md 不存在'] });
+    return;
+  }
+
+  // 检查 frontmatter 是否存在
+  if (!content.startsWith('---\n')) {
+    issues.push('missing frontmatter opener (---)');
+  }
+
+  // 检查 frontmatter 是否正确关闭
+  if (content.startsWith('---\n') && content.indexOf('\n---\n', 4) === -1) {
+    issues.push('missing frontmatter closer (---)');
+  }
+
+  // 检查必需的键
+  if (issues.length === 0) {
+    const { frontmatter } = parseFrontmatter(content);
+    const requiredKeys = ['status', 'last_updated', 'last_activity'];
+    for (const key of requiredKeys) {
+      if (frontmatter[key] === undefined || frontmatter[key] === null) {
+        issues.push(`missing required key: ${key}`);
+      }
+    }
+  }
+
+  utils.output({ valid: issues.length === 0, issues });
+}
+
+/**
  * 命令分发入口
  * @param {string} cwd - 项目根目录
  * @param {string[]} args - 子命令参数
@@ -256,10 +393,16 @@ function run(cwd, args) {
     stateSet(cwd, args[1], args.slice(2).join(' '));
   } else if (sub === 'json') {
     stateJson(cwd);
+  } else if (sub === 'patch') {
+    statePatch(cwd, args.slice(1));
+  } else if (sub === 'merge') {
+    stateMerge(cwd, args.slice(1));
+  } else if (sub === 'validate') {
+    stateValidate(cwd);
   } else {
-    utils.error('用法: wf-tools state [get|set|json]');
+    utils.error('用法: wf-tools state [get|set|json|patch|merge|validate]');
     process.exit(1);
   }
 }
 
-module.exports = { parseFrontmatter, serializeFrontmatter, parseYamlValue, parseStateMd, stateGet, stateSet, stateJson, run };
+module.exports = { parseFrontmatter, serializeFrontmatter, parseYamlValue, parseStateMd, stateGet, stateSet, stateJson, statePatch, stateMerge, stateValidate, run };
