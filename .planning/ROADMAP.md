@@ -77,7 +77,11 @@ Plans:
   2. 运行 /wf-resume 从 HANDOFF.json 恢复上下文，自动路由到中断点继续执行
   3. 运行 /wf-next 自动检测项目当前状态（未规划/未执行/未验证）并推进到下一逻辑步骤
   4. session-state hook 输出结构化 JSON（而非原始 markdown），工作流可直接解析使用
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 04-01-PLAN.md — Rewrite SessionStart hook to Node.js with structured JSON output + create session.cjs persistence module
+- [ ] 04-02-PLAN.md — Create /wf-pause and /wf-resume commands with workflow, CLI integration, and settings.json update
+- [ ] 04-03-PLAN.md — Create /wf-next auto-advance command with lifecycle detection and Skill() routing
 
 ### Phase 5: Workflow Enhancement
 **Goal**: 工作流覆盖更多实际场景（自治执行、阶段动态调整、配置管理），减少卡顿和误报
@@ -110,6 +114,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 1. CLI Foundation | 3/3 | Complete | 2026-04-10 |
 | 2. State Safety | 4/4 | Complete | 2026-04-10 |
 | 3. Agent Contracts | 0/2 | Planning complete | - |
-| 4. Session Management | 0/? | Not started | - |
+| 4. Session Management | 0/3 | Planning complete | - |
 | 5. Workflow Enhancement | 0/? | Not started | - |
 | 6. Quality Tools | 0/? | Not started | - |
