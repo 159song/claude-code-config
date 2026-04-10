@@ -589,22 +589,22 @@ function stateBeginPhase(cwd, args) {
 | Malformed JSON in merge command | Tampering | try/catch on JSON.parse, exit with error message |
 | STATE.md corruption from partial write | Tampering | Synchronous writeFileSync (atomic at OS level for small files) |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Body content update for `begin-phase`**
    - What we know: STATE.md has a "Current Position" section in the body with human-readable text like "Phase: 2 of 6 (state safety)"
    - What's unclear: Should `begin-phase` also update this body text, or only the frontmatter?
-   - Recommendation: Update frontmatter only. Body is for human display and can be regenerated from frontmatter by the progress workflow. This keeps the CLI simple and avoids fragile body-text parsing.
+   - RESOLVED: Update frontmatter only. Body is for human display and can be regenerated from frontmatter by the progress workflow. This keeps the CLI simple and avoids fragile body-text parsing.
 
 2. **ROADMAP.md checkbox updates**
    - What we know: ROADMAP.md has `- [ ] **Phase N:** ...` checkbox lines and a Progress table
    - What's unclear: Should Phase 2 add a CLI command to update ROADMAP.md checkboxes when a phase completes?
-   - Recommendation: Out of scope for Phase 2. ROADMAP.md updates can be handled by `advance-plan` updating only STATE.md, and a future phase can add roadmap mutation commands if needed.
+   - RESOLVED: Out of scope for Phase 2. ROADMAP.md updates can be handled by `advance-plan` updating only STATE.md, and a future phase can add roadmap mutation commands if needed.
 
 3. **validate --repair scope**
    - What we know: Repair can fix frontmatter structure issues
    - What's unclear: Should repair also fix body content (e.g., missing sections)?
-   - Recommendation: Repair frontmatter only. Body content is authored by workflows and has too many valid variations for automated repair.
+   - RESOLVED: Repair frontmatter only. Body content is authored by workflows and has too many valid variations for automated repair.
 
 ## Sources
 
