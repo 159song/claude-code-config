@@ -63,7 +63,10 @@ Plans:
   2. executor agent 在 context 消耗达 70% 时自动保存进度并安全停止，可通过恢复机制继续
   3. agent 指令中使用 Claude Code 原生 API 字段（memory, isolation, effort），而非自定义替代方案
   4. agent-contracts.md 参考文档存在且定义了每个 agent 类型的输入格式、输出格式和错误处理规则
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 03-01-PLAN.md — Add contracts, completion markers, and native API fields to 5 agent definitions + create agent-contracts.md reference
+- [ ] 03-02-PLAN.md — Update 6 workflow files with contract-based invocation, completion parsing, retry logic, and config-driven models
 
 ### Phase 4: Session Management
 **Goal**: 用户可以随时暂停工作、跨会话恢复上下文、并让系统自动推进到下一步，长任务不再被迫一次完成
@@ -106,7 +109,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 |-------|----------------|--------|-----------|
 | 1. CLI Foundation | 3/3 | Complete | 2026-04-10 |
 | 2. State Safety | 4/4 | Complete | 2026-04-10 |
-| 3. Agent Contracts | 0/? | Not started | - |
+| 3. Agent Contracts | 0/2 | Planning complete | - |
 | 4. Session Management | 0/? | Not started | - |
 | 5. Workflow Enhancement | 0/? | Not started | - |
 | 6. Quality Tools | 0/? | Not started | - |
