@@ -45,6 +45,15 @@ const CONFIG_DEFAULTS = {
   hooks: {
     context_warnings: true,
   },
+  agents: {
+    models: {
+      executor: 'sonnet',
+      planner: 'sonnet',
+      verifier: 'sonnet',
+      researcher: 'haiku',
+      roadmapper: 'haiku',
+    },
+  },
 };
 
 /**
