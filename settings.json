@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/wf-session-state.sh"
+            "command": "bash \"$HOME/.claude/hooks/wf-session-state.sh\""
           }
         ]
       }
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/wf-context-monitor.js",
+            "command": "node \"$HOME/.claude/hooks/wf-context-monitor.js\"",
             "timeout": 10
           }
         ]
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/wf-prompt-guard.js",
+            "command": "node \"$HOME/.claude/hooks/wf-prompt-guard.js\"",
             "timeout": 5
           }
         ]
@@ -37,6 +37,6 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "node .claude/hooks/wf-statusline.js"
+    "command": "node \"$HOME/.claude/hooks/wf-statusline.js\""
   }
 }
