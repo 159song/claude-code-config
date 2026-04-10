@@ -381,6 +381,101 @@ function stateValidate(cwd) {
 }
 
 /**
+ * 从参数数组中解析 --flag value 对
+ * @param {string[]} args - 参数数组
+ * @param {string} flag - 标志名（不含 --）
+ * @returns {string|null} 标志值，未找到时返回 null
+ */
+function parseFlag(args, flag) {
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === `--${flag}` && i + 1 < args.length) {
+      return args[i + 1];
+    }
+  }
+  return null;
+}
+
+/**
+ * 开始阶段：原子设置 status、stopped_at、timestamps（STATE-06）
+ * 用法: wf-tools state begin-phase --phase <N>
+ * @param {string} cwd - 项目根目录
+ * @param {string[]} args - 参数数组
+ */
+function stateBeginPhase(cwd, args) {
+  const phaseArg = parseFlag(args, 'phase');
+  const phaseNum = phaseArg ? parseInt(phaseArg, 10) : NaN;
+
+  if (!phaseArg || isNaN(phaseNum)) {
+    utils.error('用法: wf-tools state begin-phase --phase <N>');
+    process.exit(1);
+  }
+
+  const statePath = path.join(cwd, '.planning', 'STATE.md');
+  const content = utils.readFile(statePath);
+  if (!content) {
+    utils.error('STATE.md 不存在');
+    process.exit(1);
+  }
+
+  const { frontmatter, body } = parseFrontmatter(content);
+
+  // 原子设置多个字段
+  frontmatter.status = 'executing';
+  frontmatter.stopped_at = 'Phase ' + phaseNum + ' started';
+  frontmatter.last_updated = new Date().toISOString();
+  frontmatter.last_activity = new Date().toISOString().slice(0, 10);
+
+  const newFm = serializeFrontmatter(frontmatter);
+  utils.writeFile(statePath, `---\n${newFm}\n---\n${body}`);
+  utils.output({ success: true, phase: phaseNum });
+}
+
+/**
+ * 推进计划：增加 completed_plans 并重算 percent（STATE-06）
+ * 用法: wf-tools state advance-plan --phase <N> --plan <M>
+ * @param {string} cwd - 项目根目录
+ * @param {string[]} args - 参数数组
+ */
+function stateAdvancePlan(cwd, args) {
+  const phaseArg = parseFlag(args, 'phase');
+  const planArg = parseFlag(args, 'plan');
+  const phaseNum = phaseArg ? parseInt(phaseArg, 10) : NaN;
+  const planNum = planArg ? parseInt(planArg, 10) : NaN;
+
+  if (!phaseArg || isNaN(phaseNum) || !planArg || isNaN(planNum)) {
+    utils.error('用法: wf-tools state advance-plan --phase <N> --plan <M>');
+    process.exit(1);
+  }
+
+  const statePath = path.join(cwd, '.planning', 'STATE.md');
+  const content = utils.readFile(statePath);
+  if (!content) {
+    utils.error('STATE.md 不存在');
+    process.exit(1);
+  }
+
+  const { frontmatter, body } = parseFrontmatter(content);
+
+  // 确保 progress 是对象
+  if (!frontmatter.progress || typeof frontmatter.progress !== 'object') {
+    frontmatter.progress = {};
+  }
+
+  // 增加 completed_plans 并重算 percent
+  frontmatter.progress.completed_plans = (frontmatter.progress.completed_plans || 0) + 1;
+  const total = frontmatter.progress.total_plans || 1;
+  frontmatter.progress.percent = Math.round((frontmatter.progress.completed_plans / total) * 100);
+
+  // 设置时间戳
+  frontmatter.last_updated = new Date().toISOString();
+  frontmatter.last_activity = new Date().toISOString().slice(0, 10);
+
+  const newFm = serializeFrontmatter(frontmatter);
+  utils.writeFile(statePath, `---\n${newFm}\n---\n${body}`);
+  utils.output({ success: true, phase: phaseNum, plan: planNum, progress: frontmatter.progress });
+}
+
+/**
  * 命令分发入口
  * @param {string} cwd - 项目根目录
  * @param {string[]} args - 子命令参数
@@ -399,10 +494,14 @@ function run(cwd, args) {
     stateMerge(cwd, args.slice(1));
   } else if (sub === 'validate') {
     stateValidate(cwd);
+  } else if (sub === 'begin-phase') {
+    stateBeginPhase(cwd, args.slice(1));
+  } else if (sub === 'advance-plan') {
+    stateAdvancePlan(cwd, args.slice(1));
   } else {
-    utils.error('用法: wf-tools state [get|set|json|patch|merge|validate]');
+    utils.error('用法: wf-tools state [get|set|json|patch|merge|validate|begin-phase|advance-plan]');
     process.exit(1);
   }
 }
 
-module.exports = { parseFrontmatter, serializeFrontmatter, parseYamlValue, parseStateMd, stateGet, stateSet, stateJson, statePatch, stateMerge, stateValidate, run };
+module.exports = { parseFrontmatter, serializeFrontmatter, parseYamlValue, parseStateMd, stateGet, stateSet, stateJson, statePatch, stateMerge, stateValidate, stateBeginPhase, stateAdvancePlan, run };

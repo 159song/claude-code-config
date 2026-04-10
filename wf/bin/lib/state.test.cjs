@@ -515,3 +515,291 @@ last_activity: 2026-04-10
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 });
+
+// === Task 1 (Plan 02-03): stateBeginPhase and stateAdvancePlan tests ===
+
+const BEGIN_PHASE_FIXTURE = `---
+status: planning
+stopped_at: Phase 1 completed
+last_updated: "2026-04-10T06:00:00.000Z"
+last_activity: 2026-04-10
+milestone: v1.0
+progress:
+  total_phases: 6
+  completed_phases: 1
+  total_plans: 3
+  completed_plans: 3
+  percent: 100
+---
+
+# Project State
+`;
+
+const ADVANCE_PLAN_FIXTURE = `---
+status: executing
+stopped_at: Phase 2 started
+last_updated: "2026-04-10T06:00:00.000Z"
+last_activity: 2026-04-10
+progress:
+  total_phases: 6
+  completed_phases: 1
+  total_plans: 3
+  completed_plans: 1
+  percent: 33
+---
+
+# Project State
+`;
+
+// --- stateBeginPhase tests ---
+
+test('stateBeginPhase with --phase 2 sets status to executing', () => {
+  const { tmpDir, statePath } = createTempState(BEGIN_PHASE_FIXTURE);
+  try {
+    captureOutput(() => {
+      state.stateBeginPhase(tmpDir, ['--phase', '2']);
+    });
+    const content = fs.readFileSync(statePath, 'utf8');
+    const { frontmatter } = state.parseFrontmatter(content);
+    assert.strictEqual(frontmatter.status, 'executing');
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('stateBeginPhase with --phase 2 sets stopped_at to Phase 2 started', () => {
+  const { tmpDir, statePath } = createTempState(BEGIN_PHASE_FIXTURE);
+  try {
+    captureOutput(() => {
+      state.stateBeginPhase(tmpDir, ['--phase', '2']);
+    });
+    const content = fs.readFileSync(statePath, 'utf8');
+    const { frontmatter } = state.parseFrontmatter(content);
+    assert.strictEqual(frontmatter.stopped_at, 'Phase 2 started');
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('stateBeginPhase with --phase 2 sets last_updated to ISO timestamp', () => {
+  const { tmpDir, statePath } = createTempState(BEGIN_PHASE_FIXTURE);
+  try {
+    captureOutput(() => {
+      state.stateBeginPhase(tmpDir, ['--phase', '2']);
+    });
+    const content = fs.readFileSync(statePath, 'utf8');
+    const { frontmatter } = state.parseFrontmatter(content);
+    // last_updated should be an ISO string (serializeFrontmatter quotes it)
+    assert.ok(typeof frontmatter.last_updated === 'string', 'last_updated should be a string');
+    assert.ok(/^\d{4}-\d{2}-\d{2}T/.test(frontmatter.last_updated), 'last_updated should be ISO format');
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('stateBeginPhase with --phase 2 sets last_activity to YYYY-MM-DD', () => {
+  const { tmpDir, statePath } = createTempState(BEGIN_PHASE_FIXTURE);
+  try {
+    captureOutput(() => {
+      state.stateBeginPhase(tmpDir, ['--phase', '2']);
+    });
+    const content = fs.readFileSync(statePath, 'utf8');
+    const { frontmatter } = state.parseFrontmatter(content);
+    assert.ok(/^\d{4}-\d{2}-\d{2}$/.test(frontmatter.last_activity), 'last_activity should be YYYY-MM-DD');
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('stateBeginPhase preserves all other frontmatter keys', () => {
+  const { tmpDir, statePath } = createTempState(BEGIN_PHASE_FIXTURE);
+  try {
+    captureOutput(() => {
+      state.stateBeginPhase(tmpDir, ['--phase', '2']);
+    });
+    const content = fs.readFileSync(statePath, 'utf8');
+    const { frontmatter } = state.parseFrontmatter(content);
+    assert.strictEqual(frontmatter.milestone, 'v1.0');
+    assert.strictEqual(frontmatter.progress.total_phases, 6);
+    assert.strictEqual(frontmatter.progress.completed_phases, 1);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('stateBeginPhase without --phase arg exits with error', () => {
+  const { tmpDir } = createTempState(BEGIN_PHASE_FIXTURE);
+  const originalExit = process.exit;
+  const originalWriteSync = fs.writeSync;
+  let exitCode = null;
+  let stderrOutput = '';
+
+  process.exit = (code) => { exitCode = code; throw new Error('EXIT'); };
+  fs.writeSync = (fd, data) => {
+    if (fd === 2) stderrOutput += data;
+    else if (fd !== 1) originalWriteSync(fd, data);
+  };
+
+  try {
+    state.stateBeginPhase(tmpDir, []);
+  } catch (e) {
+    if (e.message !== 'EXIT') throw e;
+  } finally {
+    process.exit = originalExit;
+    fs.writeSync = originalWriteSync;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+
+  assert.strictEqual(exitCode, 1);
+  assert.ok(stderrOutput.length > 0, 'Should output error message');
+});
+
+test('stateBeginPhase with non-numeric phase exits with error', () => {
+  const { tmpDir } = createTempState(BEGIN_PHASE_FIXTURE);
+  const originalExit = process.exit;
+  const originalWriteSync = fs.writeSync;
+  let exitCode = null;
+  let stderrOutput = '';
+
+  process.exit = (code) => { exitCode = code; throw new Error('EXIT'); };
+  fs.writeSync = (fd, data) => {
+    if (fd === 2) stderrOutput += data;
+    else if (fd !== 1) originalWriteSync(fd, data);
+  };
+
+  try {
+    state.stateBeginPhase(tmpDir, ['--phase', 'abc']);
+  } catch (e) {
+    if (e.message !== 'EXIT') throw e;
+  } finally {
+    process.exit = originalExit;
+    fs.writeSync = originalWriteSync;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+
+  assert.strictEqual(exitCode, 1);
+  assert.ok(stderrOutput.length > 0, 'Should output error message');
+});
+
+// --- stateAdvancePlan tests ---
+
+test('stateAdvancePlan with --phase 2 --plan 1 increments completed_plans', () => {
+  const { tmpDir, statePath } = createTempState(ADVANCE_PLAN_FIXTURE);
+  try {
+    captureOutput(() => {
+      state.stateAdvancePlan(tmpDir, ['--phase', '2', '--plan', '1']);
+    });
+    const content = fs.readFileSync(statePath, 'utf8');
+    const { frontmatter } = state.parseFrontmatter(content);
+    assert.strictEqual(frontmatter.progress.completed_plans, 2);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('stateAdvancePlan recalculates percent as round((completed/total)*100)', () => {
+  const { tmpDir, statePath } = createTempState(ADVANCE_PLAN_FIXTURE);
+  try {
+    captureOutput(() => {
+      state.stateAdvancePlan(tmpDir, ['--phase', '2', '--plan', '1']);
+    });
+    const content = fs.readFileSync(statePath, 'utf8');
+    const { frontmatter } = state.parseFrontmatter(content);
+    // completed_plans was 1, now 2. total_plans is 3. 2/3*100 = 67
+    assert.strictEqual(frontmatter.progress.percent, 67);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('stateAdvancePlan sets last_updated and last_activity timestamps', () => {
+  const { tmpDir, statePath } = createTempState(ADVANCE_PLAN_FIXTURE);
+  try {
+    captureOutput(() => {
+      state.stateAdvancePlan(tmpDir, ['--phase', '2', '--plan', '1']);
+    });
+    const content = fs.readFileSync(statePath, 'utf8');
+    const { frontmatter } = state.parseFrontmatter(content);
+    assert.ok(/^\d{4}-\d{2}-\d{2}T/.test(frontmatter.last_updated), 'last_updated should be ISO format');
+    assert.ok(/^\d{4}-\d{2}-\d{2}$/.test(frontmatter.last_activity), 'last_activity should be YYYY-MM-DD');
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('stateAdvancePlan preserves progress.total_phases and progress.completed_phases', () => {
+  const { tmpDir, statePath } = createTempState(ADVANCE_PLAN_FIXTURE);
+  try {
+    captureOutput(() => {
+      state.stateAdvancePlan(tmpDir, ['--phase', '2', '--plan', '1']);
+    });
+    const content = fs.readFileSync(statePath, 'utf8');
+    const { frontmatter } = state.parseFrontmatter(content);
+    assert.strictEqual(frontmatter.progress.total_phases, 6);
+    assert.strictEqual(frontmatter.progress.completed_phases, 1);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('stateAdvancePlan without --phase or --plan exits with error', () => {
+  const { tmpDir } = createTempState(ADVANCE_PLAN_FIXTURE);
+  const originalExit = process.exit;
+  const originalWriteSync = fs.writeSync;
+  let exitCode = null;
+  let stderrOutput = '';
+
+  process.exit = (code) => { exitCode = code; throw new Error('EXIT'); };
+  fs.writeSync = (fd, data) => {
+    if (fd === 2) stderrOutput += data;
+    else if (fd !== 1) originalWriteSync(fd, data);
+  };
+
+  try {
+    state.stateAdvancePlan(tmpDir, ['--phase', '2']);
+  } catch (e) {
+    if (e.message !== 'EXIT') throw e;
+  } finally {
+    process.exit = originalExit;
+    fs.writeSync = originalWriteSync;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+
+  assert.strictEqual(exitCode, 1);
+  assert.ok(stderrOutput.length > 0, 'Should output error message');
+});
+
+// --- run dispatch tests for begin-phase and advance-plan ---
+
+test('run dispatches begin-phase subcommand correctly', () => {
+  const { tmpDir, statePath } = createTempState(BEGIN_PHASE_FIXTURE);
+  try {
+    const result = captureOutput(() => {
+      state.run(tmpDir, ['begin-phase', '--phase', '3']);
+    });
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.phase, 3);
+    const content = fs.readFileSync(statePath, 'utf8');
+    const { frontmatter } = state.parseFrontmatter(content);
+    assert.strictEqual(frontmatter.status, 'executing');
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('run dispatches advance-plan subcommand correctly', () => {
+  const { tmpDir, statePath } = createTempState(ADVANCE_PLAN_FIXTURE);
+  try {
+    const result = captureOutput(() => {
+      state.run(tmpDir, ['advance-plan', '--phase', '2', '--plan', '2']);
+    });
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.phase, 2);
+    assert.strictEqual(result.plan, 2);
+    const content = fs.readFileSync(statePath, 'utf8');
+    const { frontmatter } = state.parseFrontmatter(content);
+    assert.strictEqual(frontmatter.progress.completed_plans, 2);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
