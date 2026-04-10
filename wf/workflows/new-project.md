@@ -129,6 +129,8 @@ Agent({ subagent_type: "wf-researcher", prompt: "研究风险: {{tech_stack}} + 
 - 状态: active
 - 进度: 0%
 
+> **注意:** STATE.md 初始生成后，后续所有变更必须通过 `wf-tools state` CLI 子命令完成，禁止直接 Write/Edit。
+
 提交所有 `.planning/` 文件到 git：
 
 ```bash

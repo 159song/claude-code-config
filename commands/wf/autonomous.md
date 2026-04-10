@@ -19,7 +19,7 @@ allowed-tools:
 
 产出:
 - 每个阶段的完整 artifact (CONTEXT, PLAN, SUMMARY, VERIFICATION)
-- `.planning/STATE.md` — 实时更新
+- `.planning/STATE.md` — 通过 `wf-tools state` CLI 命令更新（禁止直接 Write/Edit）
 </objective>
 
 <execution_context>

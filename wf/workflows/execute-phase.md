@@ -104,7 +104,10 @@ Agent({
 
 1. **回归门禁:** 运行现有测试，确保无回归
 2. **Schema 漂移检查:** 检查数据库/API schema 是否有未提交的变更
-3. **进度更新:** 更新 STATE.md 中的进度百分比
+3. **进度更新:** 通过 CLI 更新进度
+```bash
+wf-tools state advance-plan --phase {N} --plan {M}
+```
 
 ```
 Wave 2/3 完成 ████████████░░░░ 67%
@@ -145,9 +148,13 @@ Agent({
 <step name="complete_phase">
 ## 6. 完成阶段
 
-更新 STATE.md：
-- 当前阶段标记为 completed
-- 推进到下一阶段
+通过 CLI 完成阶段转换：
+```bash
+# 标记当前阶段完成并推进到下一阶段
+wf-tools state begin-phase --phase {N+1}
+```
+
+> **重要:** 禁止直接 Write/Edit STATE.md。所有状态变更必须通过 `wf-tools state` 子命令完成。
 
 提交到 git：
 ```bash
@@ -188,6 +195,6 @@ Agent 在执行过程中遇到计划外情况时的处理规则：
 - [ ] 每个计划有对应的 SUMMARY.md
 - [ ] 4 级验证通过（或 gap closure 后通过）
 - [ ] 无测试回归
-- [ ] STATE.md 正确更新
+- [ ] STATE.md 通过 CLI 命令正确更新（`wf-tools state json` 验证）
 - [ ] 所有变更已提交到 git
 </success_criteria>
