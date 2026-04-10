@@ -19,12 +19,12 @@ allowed-tools:
 
 产出:
 - 每个阶段的完整 artifact (CONTEXT, PLAN, SUMMARY, VERIFICATION)
-- `.planning/STATE.md` — 实时更新
+- `.planning/STATE.md` — 通过 `wf-tools state` CLI 命令更新（禁止直接 Write/Edit）
 </objective>
 
 <execution_context>
-@{{WF_ROOT}}/wf/workflows/autonomous.md
-@{{WF_ROOT}}/wf/references/ui-brand.md
+@$HOME/.claude/wf/workflows/autonomous.md
+@$HOME/.claude/wf/references/ui-brand.md
 </execution_context>
 
 <context>
@@ -32,6 +32,6 @@ $ARGUMENTS
 </context>
 
 <process>
-按照 @{{WF_ROOT}}/wf/workflows/autonomous.md 端到端执行。
+按照 @$HOME/.claude/wf/workflows/autonomous.md 端到端执行。
 保留所有工作流门禁（阶段发现、逐阶段执行、阻塞处理）。
 </process>

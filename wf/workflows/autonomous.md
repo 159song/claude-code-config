@@ -95,7 +95,10 @@ cat .planning/STATE.md
 ▶ 推进到 Phase {N+1}...
 ```
 
-更新 STATE.md，继续下一阶段。
+通过 CLI 推进到下一阶段：
+```bash
+wf-tools state begin-phase --phase {N+1}
+```
 </step>
 
 <step name="gap_closure">
@@ -142,13 +145,16 @@ cat .planning/STATE.md
 1. **单个任务失败:** 记录错误，跳过该任务，继续执行。在阶段摘要中标记失败任务。
 2. **整个计划失败:** 暂停当前阶段，展示错误信息，等待用户决策。
 3. **验证失败:** 自动 gap closure（1 次）。如果仍然失败，暂停等待用户。
-4. **Context 耗尽:** 保存当前状态到 STATE.md，提示用户在新会话中运行 `/wf-autonomous --from {current_phase}`。
+4. **Context 耗尽:** 通过 CLI 保存当前状态，提示用户在新会话中运行 `/wf-autonomous --from {current_phase}`。
+```bash
+wf-tools state patch --status paused --stopped_at "Context exhausted at Phase {N}"
+```
 </error_handling>
 
 <success_criteria>
 - [ ] 所有指定阶段执行完成
 - [ ] 每个阶段的验证通过
-- [ ] STATE.md 正确反映最终状态
+- [ ] STATE.md 通过 CLI 命令正确更新（`wf-tools state json` 验证）
 - [ ] 所有变更已提交到 git
 - [ ] 失败项已清晰报告
 </success_criteria>

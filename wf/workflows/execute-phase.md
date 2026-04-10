@@ -8,6 +8,8 @@ orchestrator 保持轻量：发现计划 → 分析依赖 → 分波 → 派发 
 产出文件：
 - `.planning/phase-{N}/SUMMARY-*.md` — 每个计划的执行摘要
 - `.planning/phase-{N}/VERIFICATION.md` — 阶段验证结果
+
+> **参考:** Agent 合同定义见 `wf/references/agent-contracts.md`
 </purpose>
 
 <flags>
@@ -42,23 +44,52 @@ orchestrator 保持轻量：发现计划 → 分析依赖 → 分波 → 派发 
 
 同一 wave 内的计划并行执行，每个计划启动一个 `wf-executor` agent：
 
+### 恢复检测
+
+检查是否存在 partial SUMMARY.md（来自之前因 context 预算暂停的执行）：
+
+1. 扫描 `.planning/phase-{N}/` 下以 `SUMMARY` 开头且包含 `PARTIAL` 标记的文件
+2. 如果存在，将其路径作为 `resume_from` 传递给 executor input contract
+3. Executor 将跳过已完成的任务，从恢复点继续
+
+### Agent 调用
+
 ```javascript
-// Wave 1: 并行启动
+// 从 config 读取 executor 模型
+// MODEL = config.agents.models.executor || "sonnet"
+
 Agent({
   subagent_type: "wf-executor",
+  model: MODEL,
   isolation: "worktree",  // Git worktree 隔离
   prompt: `
-    执行计划: PLAN-A.md
-    阶段: {N}
-    
-    规则:
-    - 严格按计划执行每个任务
-    - 每完成一个任务立即 git commit
-    - 遇到偏差按偏差规则处理
-    - 完成后生成 SUMMARY.md
+    执行计划 Phase {N}。
+
+    ## Input (per contract)
+    - phase: {N}
+    - plan_path: .planning/phase-{N}/{plan_file}
+    - context_md: .planning/phase-{N}/CONTEXT.md
+    - session_id: {SESSION_ID}
+    ${resumePath ? `- resume_from: ${resumePath}` : ''}
+
+    严格按计划执行每个任务，每完成一个任务立即 git commit。
+    遇到偏差按偏差规则处理。
+    完成后生成 SUMMARY.md 并输出 JSON 完成标记。
   `
 })
 ```
+
+### 完成标记解析
+
+Executor 返回后，从其输出中提取最后一个 JSON 代码块作为完成标记：
+
+| Status | 处理 |
+|--------|------|
+| `"complete"` | 计划执行成功，继续下一步 |
+| `"partial"` | 记录部分完成状态。检查 SUMMARY.md 中的恢复点，通知用户可通过 `--wave` 参数从恢复点继续 |
+| `"failed"` | 重试一次：在新 prompt 中附带失败的 summary 信息。重试仍失败则记录错误到 SUMMARY.md 并报告用户 |
+
+**重试规则：** 最多重试 1 次。重试 prompt 包含原始任务描述 + 上次失败的 summary。第二次失败后停止，不无限重试。
 
 **并行条件：**
 - `config.parallelization.enabled === true`
@@ -104,7 +135,10 @@ Agent({
 
 1. **回归门禁:** 运行现有测试，确保无回归
 2. **Schema 漂移检查:** 检查数据库/API schema 是否有未提交的变更
-3. **进度更新:** 更新 STATE.md 中的进度百分比
+3. **进度更新:** 通过 CLI 更新进度
+```bash
+wf-tools state advance-plan --phase {N} --plan {M}
+```
 
 ```
 Wave 2/3 完成 ████████████░░░░ 67%
@@ -120,19 +154,39 @@ Wave 2/3 完成 ████████████░░░░ 67%
 所有 wave 完成后，启动 `wf-verifier` agent：
 
 ```javascript
+// MODEL = config.agents.models.verifier || "sonnet"
+
 Agent({
   subagent_type: "wf-verifier",
+  model: MODEL,
   prompt: `
     验证阶段 {N} 的目标是否达成。
-    
-    阶段目标: {{goal}}
-    需求列表: {{requirements}}
-    执行摘要: {{summaries}}
-    
+
+    ## Input (per contract)
+    - phase: {N}
+    - goal: {{goal}}
+    - requirements: {{requirement_ids}}
+    - plan_paths: [{{plan_file_paths}}]
+    - summary_paths: [{{summary_file_paths}}]
+    - context_md: .planning/phase-{N}/CONTEXT.md
+
     使用 4 级验证模型: exists → substantive → wired → data-flowing
+    完成后输出 JSON 完成标记。
   `
 })
 ```
+
+### 验证完成标记解析
+
+Verifier 返回后，从其输出中提取最后一个 JSON 代码块作为完成标记：
+
+| Status | 处理 |
+|--------|------|
+| `"complete"` | 验证通过，继续完成阶段 |
+| `"partial"` | 部分验证通过，记录未通过项，生成 gap closure 计划 |
+| `"failed"` | 重试一次：附带失败详情重新调用 verifier。重试仍失败则报告用户 |
+
+**重试规则：** 最多重试 1 次。第二次失败后停止，不无限重试。
 
 验证结果写入 `.planning/phase-{N}/VERIFICATION.md`。
 
@@ -145,9 +199,13 @@ Agent({
 <step name="complete_phase">
 ## 6. 完成阶段
 
-更新 STATE.md：
-- 当前阶段标记为 completed
-- 推进到下一阶段
+通过 CLI 完成阶段转换：
+```bash
+# 标记当前阶段完成并推进到下一阶段
+wf-tools state begin-phase --phase {N+1}
+```
+
+> **重要:** 禁止直接 Write/Edit STATE.md。所有状态变更必须通过 `wf-tools state` 子命令完成。
 
 提交到 git：
 ```bash
@@ -188,6 +246,6 @@ Agent 在执行过程中遇到计划外情况时的处理规则：
 - [ ] 每个计划有对应的 SUMMARY.md
 - [ ] 4 级验证通过（或 gap closure 后通过）
 - [ ] 无测试回归
-- [ ] STATE.md 正确更新
+- [ ] STATE.md 通过 CLI 命令正确更新（`wf-tools state json` 验证）
 - [ ] 所有变更已提交到 git
 </success_criteria>

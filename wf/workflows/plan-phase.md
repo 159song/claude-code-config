@@ -6,6 +6,8 @@
 - `.planning/phase-{N}/RESEARCH.md` — 实现研究（可选）
 - `.planning/phase-{N}/PLAN.md`（或多个 PLAN-*.md）— 执行计划
 - `.planning/phase-{N}/THREAT-MODEL.md` — 安全威胁模型（当安全门禁开启时）
+
+> **参考:** Agent 合同定义见 `wf/references/agent-contracts.md`
 </purpose>
 
 <flags>
@@ -34,22 +36,37 @@
 启动 `wf-researcher` agent 研究具体实现方案：
 
 ```javascript
+// MODEL = config.agents.models.researcher || "haiku"
+
 Agent({
   subagent_type: "wf-researcher",
+  model: MODEL,
   prompt: `
     阶段 {N}: {{name}}
-    目标: {{goal}}
-    技术栈: {{tech_stack}}
-    决策: {{decisions}}
-    
+
+    ## Input (per contract)
+    - topic: "Phase {N} implementation: {{goal}}"
+    - tech_stack: {{tech_stack}}
+    - project_context: {{project_description}}
+    - decisions: {{decisions_from_context}}
+
     研究如何实现此阶段的目标。产出:
     1. 推荐的实现方案
     2. 需要的第三方库及版本
     3. 文件结构建议
     4. 潜在的技术风险
+
+    完成后输出 JSON 完成标记。
   `
 })
 ```
+
+### 完成标记解析
+
+Researcher 返回后，从其输出中提取 JSON 完成标记：
+- `"complete"` → 研究成功，继续规划
+- `"partial"` → 使用已有研究结果继续
+- `"failed"` → 重试一次，附带失败信息。仍失败则跳过研究，直接进入规划
 
 结果写入 `.planning/phase-{N}/RESEARCH.md`。
 </step>
@@ -60,24 +77,39 @@ Agent({
 启动 `wf-planner` agent 生成执行计划：
 
 ```javascript
+// MODEL = config.agents.models.planner || "sonnet"
+
 Agent({
   subagent_type: "wf-planner",
+  model: MODEL,
   prompt: `
     为阶段 {N} 生成执行计划。
-    
-    输入:
-    - CONTEXT.md: {{context}}
-    - RESEARCH.md: {{research}}
-    - REQUIREMENTS.md: {{requirements}}
-    
+
+    ## Input (per contract)
+    - phase: {N}
+    - goal: {{goal}}
+    - context_md: .planning/phase-{N}/CONTEXT.md
+    - requirements_md: .planning/REQUIREMENTS.md
+    - research_md: .planning/phase-{N}/RESEARCH.md
+    - roadmap_md: .planning/ROADMAP.md
+
     规则:
     - 锁定的决策不可修改
     - 每个任务必须有: files, action, verify, done
     - 任务按 wave 分组（同 wave 内可并行，wave 之间串行）
     - 计划应在 ~50% context 内完成执行
+
+    完成后输出 JSON 完成标记。
   `
 })
 ```
+
+### 完成标记解析
+
+Planner 返回后，从其输出中提取 JSON 完成标记：
+- `"complete"` → 计划生成成功，继续质量检查
+- `"partial"` → 计划不完整，记录缺失部分，尝试补充
+- `"failed"` → 重试一次，附带失败信息。仍失败则报告用户
 
 **计划格式：**
 

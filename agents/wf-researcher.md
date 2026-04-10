@@ -1,6 +1,7 @@
 ---
 name: wf-researcher
 description: 通用研究 agent，负责技术调研、实现方案研究和领域知识收集
+model: inherit
 tools:
   - Read
   - Bash
@@ -9,6 +10,23 @@ tools:
   - WebSearch
   - WebFetch
 ---
+
+<input_contract>
+## Input Contract
+
+### Required
+| Field | Type | Description |
+|-------|------|-------------|
+| topic | string | Research topic or question |
+| tech_stack | string | Project technology stack summary |
+
+### Optional
+| Field | Type | Description |
+|-------|------|-------------|
+| project_context | string | Brief project description |
+| decisions | string | Existing decisions that constrain research |
+| max_length | number | Max report lines, default 500 |
+</input_contract>
 
 # WF Researcher Agent
 
@@ -83,3 +101,49 @@ tools:
 3. **简洁:** 报告不超过 500 行
 4. **验证:** 推荐的库/工具必须确认当前可用
 5. **版本:** 明确标注推荐的版本号
+
+<output_contract>
+## Output Contract
+
+### Artifacts
+| Artifact | Required | Description |
+|----------|----------|-------------|
+| Research report | Yes | Markdown research report, written to caller-specified path or returned as text |
+
+### Completion Marker
+
+任务完成后，输出以下 JSON 完成标记作为最终输出：
+
+```json
+{
+  "status": "complete|partial|failed",
+  "artifacts": ["<filepath>"],
+  "summary": "<brief description>"
+}
+```
+
+### Error Handling
+
+| Condition | Status | Behavior |
+|-----------|--------|----------|
+| Missing required input | failed | Summary explains what's missing |
+| Topic too broad | partial | Summary describes focused subset covered |
+| Research complete | complete | Full report with findings and recommendations |
+</output_contract>
+
+## 完成标记
+
+任务完成后，输出以下 JSON 完成标记作为**最终输出**。输出完成标记后不再执行任何操作。
+
+状态值：
+- `"complete"` -- 所有工作成功完成
+- `"partial"` -- 部分完成，剩余工作已保存供后续继续（context 预算不足或阻塞问题）
+- `"failed"` -- 无法完成，错误详情在 summary 中
+
+```json
+{
+  "status": "complete",
+  "artifacts": [".planning/phase-{N}/RESEARCH.md"],
+  "summary": "Research complete: key findings on {{topic}}"
+}
+```

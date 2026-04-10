@@ -5,6 +5,8 @@
 产出文件：
 - `.planning/UAT.md` — 验收测试状态（持久化）
 - gap closure 计划（如有问题需修复）
+
+> **参考:** Agent 合同定义见 `wf/references/agent-contracts.md`
 </purpose>
 
 <flags>
@@ -46,6 +48,9 @@ kill %1 2>/dev/null
 ```
 
 冒烟测试结果注入到 UAT 状态中。
+
+> **Agent 调用:** 如需调用 `wf-verifier` agent，按合同格式构造 prompt（见 `wf/references/agent-contracts.md`），
+> 使用 `model: config.agents.models.verifier || "sonnet"`，解析返回的 JSON 完成标记。
 </step>
 
 <step name="conversation_loop">

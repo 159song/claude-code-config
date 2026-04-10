@@ -11,10 +11,10 @@ allowed-tools:
 </objective>
 
 <execution_context>
-@{{WF_ROOT}}/wf/workflows/progress.md
-@{{WF_ROOT}}/wf/references/ui-brand.md
+@$HOME/.claude/wf/workflows/progress.md
+@$HOME/.claude/wf/references/ui-brand.md
 </execution_context>
 
 <process>
-按照 @{{WF_ROOT}}/wf/workflows/progress.md 端到端执行。
+按照 @$HOME/.claude/wf/workflows/progress.md 端到端执行。
 </process>

@@ -4,6 +4,8 @@ bug 修复、小功能、配置调整、文档更新等。
 
 完整管道: 规划 → 执行 → 验证（简化版）
 产出文件存放在 `.planning/quick/` 目录。
+
+> **参考:** Agent 合同定义见 `wf/references/agent-contracts.md`
 </purpose>
 
 <flags>
@@ -40,11 +42,27 @@ bug 修复、小功能、配置调整、文档更新等。
 快速研究相关上下文：
 
 ```javascript
+// MODEL = config.agents.models.researcher || "haiku"
+
 Agent({
   subagent_type: "wf-researcher",
-  prompt: "快速研究: {{task_description}}. 只需关键信息，不超过 200 字。"
+  model: MODEL,
+  prompt: `
+    ## Input (per contract)
+    - topic: "{{task_description}}"
+    - tech_stack: {{tech_stack}}
+    - max_length: 200
+
+    快速研究，只需关键信息。完成后输出 JSON 完成标记。
+  `
 })
 ```
+
+### 完成标记解析
+
+Researcher 返回后，提取 JSON 完成标记：
+- `"complete"` → 使用研究结果
+- `"failed"` → 重试一次，仍失败则跳过研究直接执行
 </step>
 
 <step name="discuss" condition="--discuss">
@@ -78,19 +96,36 @@ B) {{方案 B 描述}} — 优点/缺点
 启动 `wf-executor` agent 执行：
 
 ```javascript
+// MODEL = config.agents.models.executor || "sonnet"
+
 Agent({
   subagent_type: "wf-executor",
+  model: MODEL,
   prompt: `
-    执行快速任务:
+    执行快速任务。
+
+    ## Input (per contract)
+    - phase: quick
+    - plan_path: (inline plan below)
+    - context_md: N/A (quick task)
+    - session_id: {SESSION_ID}
+
     {{plan}}
-    
+
     规则:
     - 每完成一个改动立即 commit
     - 保持改动最小化
-    - 不要引入不必要的重构
+    完成后输出 JSON 完成标记。
   `
 })
 ```
+
+### 完成标记解析
+
+Executor 返回后，提取 JSON 完成标记：
+- `"complete"` → 任务完成
+- `"partial"` → 记录部分完成状态
+- `"failed"` → 重试一次，仍失败则报告用户
 </step>
 
 <step name="verify" condition="--validate 或 --full">

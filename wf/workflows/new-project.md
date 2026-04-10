@@ -10,6 +10,8 @@
 - `.planning/STATE.md` — 项目状态记忆
 
 完成后运行: `/wf-discuss-phase 1` 或 `/wf-autonomous`
+
+> **参考:** Agent 合同定义见 `wf/references/agent-contracts.md`
 </purpose>
 
 <flags>
@@ -72,12 +74,45 @@ mkdir -p .planning
 每个方向使用 `Agent()` 启动，`subagent_type: "wf-researcher"`：
 
 ```javascript
+// MODEL = config.agents.models.researcher || "haiku"
+
 // 并行启动 4 个研究 agent
-Agent({ subagent_type: "wf-researcher", prompt: "研究技术栈: {{tech_stack}}..." })
-Agent({ subagent_type: "wf-researcher", prompt: "研究功能参考: {{project_type}}..." })
-Agent({ subagent_type: "wf-researcher", prompt: "研究架构模式: {{tech_stack}}..." })
-Agent({ subagent_type: "wf-researcher", prompt: "研究风险: {{tech_stack}} + {{project_type}}..." })
+Agent({ subagent_type: "wf-researcher", model: MODEL, prompt: `
+  ## Input (per contract)
+  - topic: "技术栈研究: {{tech_stack}}"
+  - tech_stack: {{tech_stack}}
+  - project_context: {{project_description}}
+  完成后输出 JSON 完成标记。
+` })
+Agent({ subagent_type: "wf-researcher", model: MODEL, prompt: `
+  ## Input (per contract)
+  - topic: "功能参考: {{project_type}}"
+  - tech_stack: {{tech_stack}}
+  - project_context: {{project_description}}
+  完成后输出 JSON 完成标记。
+` })
+Agent({ subagent_type: "wf-researcher", model: MODEL, prompt: `
+  ## Input (per contract)
+  - topic: "架构模式: {{tech_stack}}"
+  - tech_stack: {{tech_stack}}
+  - project_context: {{project_description}}
+  完成后输出 JSON 完成标记。
+` })
+Agent({ subagent_type: "wf-researcher", model: MODEL, prompt: `
+  ## Input (per contract)
+  - topic: "风险研究: {{tech_stack}} + {{project_type}}"
+  - tech_stack: {{tech_stack}}
+  - project_context: {{project_description}}
+  完成后输出 JSON 完成标记。
+` })
 ```
+
+### 完成标记解析
+
+每个 Researcher 返回后，提取 JSON 完成标记：
+- `"complete"` → 研究成功，汇总结果
+- `"partial"` → 使用已有结果
+- `"failed"` → 重试一次，仍失败则跳过该方向
 
 研究结果汇总到 `.planning/research/SUMMARY.md`。
 </step>
@@ -104,6 +139,29 @@ Agent({ subagent_type: "wf-researcher", prompt: "研究风险: {{tech_stack}} + 
 
 使用 `Agent()` 启动 `subagent_type: "wf-roadmapper"`，生成 `.planning/ROADMAP.md`：
 
+```javascript
+// MODEL = config.agents.models.roadmapper || "haiku"
+
+Agent({
+  subagent_type: "wf-roadmapper",
+  model: MODEL,
+  prompt: `
+    ## Input (per contract)
+    - project_md: .planning/PROJECT.md
+    - requirements_md: .planning/REQUIREMENTS.md
+    ${researchSummary ? `- research_summary: .planning/research/SUMMARY.md` : ''}
+
+    生成阶段路线图。完成后输出 JSON 完成标记。
+  `
+})
+```
+
+### 完成标记解析
+
+Roadmapper 返回后，提取 JSON 完成标记：
+- `"complete"` → 路线图生成成功
+- `"failed"` → 重试一次，仍失败则报告用户
+
 **阶段划分规则：**
 - 每个阶段聚焦一个可独立交付的功能域
 - 阶段之间有明确的依赖关系
@@ -128,6 +186,8 @@ Agent({ subagent_type: "wf-researcher", prompt: "研究风险: {{tech_stack}} + 
 - 当前阶段: 1
 - 状态: active
 - 进度: 0%
+
+> **注意:** STATE.md 初始生成后，后续所有变更必须通过 `wf-tools state` CLI 子命令完成，禁止直接 Write/Edit。
 
 提交所有 `.planning/` 文件到 git：
 
