@@ -20,8 +20,8 @@ allowed-tools:
 </objective>
 
 <execution_context>
-@{{WF_ROOT}}/wf/workflows/verify-work.md
-@{{WF_ROOT}}/wf/references/ui-brand.md
+@$HOME/.claude/wf/workflows/verify-work.md
+@$HOME/.claude/wf/references/ui-brand.md
 </execution_context>
 
 <context>
@@ -29,5 +29,5 @@ $ARGUMENTS
 </context>
 
 <process>
-按照 @{{WF_ROOT}}/wf/workflows/verify-work.md 端到端执行。
+按照 @$HOME/.claude/wf/workflows/verify-work.md 端到端执行。
 </process>

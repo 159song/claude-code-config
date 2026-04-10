@@ -24,9 +24,9 @@ orchestrator 保持轻量：发现计划 → 分析依赖 → 分波 → 派发 
 </objective>
 
 <execution_context>
-@{{WF_ROOT}}/wf/workflows/execute-phase.md
-@{{WF_ROOT}}/wf/references/ui-brand.md
-@{{WF_ROOT}}/wf/references/verification-patterns.md
+@$HOME/.claude/wf/workflows/execute-phase.md
+@$HOME/.claude/wf/references/ui-brand.md
+@$HOME/.claude/wf/references/verification-patterns.md
 </execution_context>
 
 <context>
@@ -39,6 +39,6 @@ orchestrator 保持轻量：发现计划 → 分析依赖 → 分波 → 派发 
 </context>
 
 <process>
-按照 @{{WF_ROOT}}/wf/workflows/execute-phase.md 端到端执行。
+按照 @$HOME/.claude/wf/workflows/execute-phase.md 端到端执行。
 保留所有工作流门禁（wave 执行、检查点、验证、状态更新）。
 </process>

@@ -22,9 +22,9 @@ allowed-tools:
 </objective>
 
 <execution_context>
-@{{WF_ROOT}}/wf/workflows/plan-phase.md
-@{{WF_ROOT}}/wf/references/ui-brand.md
-@{{WF_ROOT}}/wf/references/gates.md
+@$HOME/.claude/wf/workflows/plan-phase.md
+@$HOME/.claude/wf/references/ui-brand.md
+@$HOME/.claude/wf/references/gates.md
 </execution_context>
 
 <context>
@@ -32,6 +32,6 @@ allowed-tools:
 </context>
 
 <process>
-按照 @{{WF_ROOT}}/wf/workflows/plan-phase.md 端到端执行。
+按照 @$HOME/.claude/wf/workflows/plan-phase.md 端到端执行。
 保留所有工作流门禁（质量检查、安全门禁、修订循环）。
 </process>

@@ -13,8 +13,8 @@ allowed-tools:
 </objective>
 
 <execution_context>
-@{{WF_ROOT}}/wf/workflows/do.md
-@{{WF_ROOT}}/wf/references/ui-brand.md
+@$HOME/.claude/wf/workflows/do.md
+@$HOME/.claude/wf/references/ui-brand.md
 </execution_context>
 
 <context>
@@ -22,6 +22,6 @@ $ARGUMENTS
 </context>
 
 <process>
-按照 @{{WF_ROOT}}/wf/workflows/do.md 端到端执行。
+按照 @$HOME/.claude/wf/workflows/do.md 端到端执行。
 将用户意图路由到最佳 WF 命令并调用。
 </process>

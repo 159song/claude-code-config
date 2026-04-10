@@ -22,8 +22,8 @@ allowed-tools:
 </objective>
 
 <execution_context>
-@{{WF_ROOT}}/wf/workflows/discuss-phase.md
-@{{WF_ROOT}}/wf/references/ui-brand.md
+@$HOME/.claude/wf/workflows/discuss-phase.md
+@$HOME/.claude/wf/references/ui-brand.md
 </execution_context>
 
 <context>
@@ -31,6 +31,6 @@ allowed-tools:
 </context>
 
 <process>
-按照 @{{WF_ROOT}}/wf/workflows/discuss-phase.md 端到端执行。
+按照 @$HOME/.claude/wf/workflows/discuss-phase.md 端到端执行。
 保留所有工作流门禁。
 </process>

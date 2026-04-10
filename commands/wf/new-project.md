@@ -23,10 +23,10 @@ allowed-tools:
 </objective>
 
 <execution_context>
-@{{WF_ROOT}}/wf/workflows/new-project.md
-@{{WF_ROOT}}/wf/references/ui-brand.md
-@{{WF_ROOT}}/wf/templates/project.md
-@{{WF_ROOT}}/wf/templates/requirements.md
+@$HOME/.claude/wf/workflows/new-project.md
+@$HOME/.claude/wf/references/ui-brand.md
+@$HOME/.claude/wf/templates/project.md
+@$HOME/.claude/wf/templates/requirements.md
 </execution_context>
 
 <context>
@@ -34,6 +34,6 @@ $ARGUMENTS
 </context>
 
 <process>
-按照 @{{WF_ROOT}}/wf/workflows/new-project.md 端到端执行。
+按照 @$HOME/.claude/wf/workflows/new-project.md 端到端执行。
 保留所有工作流门禁（验证、审批、提交、路由）。
 </process>
