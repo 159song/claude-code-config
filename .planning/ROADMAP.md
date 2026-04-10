@@ -47,7 +47,12 @@ Plans:
   3. 运行 wf-tools.cjs validate --repair 可检测并自动修复 STATE.md 格式异常
   4. YAML frontmatter 支持 get/set/merge/validate 四种操作，可通过 CLI 直接读写
   5. 阶段转换（begin-phase, advance-plan）通过 CLI 命令原子执行，自动更新进度和状态
-**Plans**: TBD
+**Plans:** 4 plans
+Plans:
+- [ ] 02-01-PLAN.md — Fix nested YAML parsing and implement frontmatter CRUD (get/set/merge/patch/validate)
+- [ ] 02-02-PLAN.md — Create validate.cjs module for health check and auto-repair
+- [ ] 02-03-PLAN.md — Implement phase transition commands and fix content-based verification
+- [ ] 02-04-PLAN.md — Migrate workflow files from direct STATE.md writes to CLI commands
 
 ### Phase 3: Agent Contracts
 **Goal**: 每个 agent 有明确的输入输出合同、完成标记和 context 预算规则，工作流可靠检测 agent 完成并正确交接
@@ -100,7 +105,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. CLI Foundation | 0/3 | Planning | - |
-| 2. State Safety | 0/? | Not started | - |
+| 2. State Safety | 0/4 | Planning | - |
 | 3. Agent Contracts | 0/? | Not started | - |
 | 4. Session Management | 0/? | Not started | - |
 | 5. Workflow Enhancement | 0/? | Not started | - |
