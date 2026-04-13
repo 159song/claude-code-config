@@ -109,9 +109,9 @@ Plans:
   2. 里程碑支持完整生命周期：new-milestone 创建、complete-milestone 收尾归档、archive 历史保存
 **Plans:** 3 plans
 Plans:
-- [ ] 06-01-PLAN.md — CLI foundation: review.cjs, milestone.cjs modules with tests, config extension, router wiring
-- [ ] 06-02-PLAN.md — Code review subsystem: wf-reviewer agent, code-review workflow with Skill() chain, verify-work integration
-- [ ] 06-03-PLAN.md — Milestone lifecycle: complete-milestone and new-milestone commands and workflows
+- [x] 06-01-PLAN.md — CLI foundation: review.cjs, milestone.cjs modules with tests, config extension, router wiring
+- [x] 06-02-PLAN.md — Code review subsystem: wf-reviewer agent, code-review workflow with Skill() chain, verify-work integration
+- [x] 06-03-PLAN.md — Milestone lifecycle: complete-milestone and new-milestone commands and workflows
 
 ## Progress
 
