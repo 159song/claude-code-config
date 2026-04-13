@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-10)
 Phase: 06
 Plan: Not started
 Status: Executing Phase 05
-Last activity: 2026-04-13 - Completed quick task 260413-jxn: 更新./ARCHITECTURE.md
+Last activity: 2026-04-13 - Completed quick task 260413-k6w: 更新ARCHITECTURE.md添加整体执行流程图
 
 Progress: [..........] 0%
 
@@ -80,6 +80,7 @@ None yet.
 |---|-------------|------|--------|-----------|
 | 260413-jiy | 更新 ARCHITECTURE.md 反映 6 个阶段的所有变更 | 2026-04-13 | 862fcb5 | [260413-jiy-architecture-md-6](./quick/260413-jiy-architecture-md-6/) |
 | 260413-jxn | 更新./ARCHITECTURE.md | 2026-04-13 | dea836b | [260413-jxn-architecture-md](./quick/260413-jxn-architecture-md/) |
+| 260413-k6w | 更新ARCHITECTURE.md添加整体执行流程图 | 2026-04-13 | 4b357bd | [260413-k6w-architecture-md](./quick/260413-k6w-architecture-md/) |
 
 ## Session Continuity
 
