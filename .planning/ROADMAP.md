@@ -80,7 +80,7 @@ Plans:
 **Plans:** 3 plans
 Plans:
 - [x] 04-01-PLAN.md — Rewrite SessionStart hook to Node.js with structured JSON output + create session.cjs persistence module
-- [ ] 04-02-PLAN.md — Create /wf-pause and /wf-resume commands with workflow, CLI integration, and settings.json update
+- [x] 04-02-PLAN.md — Create /wf-pause and /wf-resume commands with workflow, CLI integration, and settings.json update
 - [x] 04-03-PLAN.md — Create /wf-next auto-advance command with lifecycle detection and Skill() routing
 
 ### Phase 5: Workflow Enhancement
@@ -93,7 +93,12 @@ Plans:
   3. /wf-settings 提供交互式配置查看和修改（granularity, mode, parallelization 等）
   4. 参考文档套件完整：agent-contracts, anti-patterns, context-budget, continuation-format 全部存在且内容充实
   5. prompt guard 支持负向前瞻模式，误报率显著降低（用户不再频繁收到不相关警告）
-**Plans**: TBD
+**Plans:** 4 plans
+Plans:
+- [ ] 05-01-PLAN.md — Rewrite autonomous.md with Skill() chain execution and error recovery
+- [ ] 05-02-PLAN.md — Add phase operations (add/insert/remove) to CLI with decimal numbering
+- [ ] 05-03-PLAN.md — Create /wf-settings interactive configuration management command
+- [ ] 05-04-PLAN.md — Harden prompt guard with negative lookahead and create 3 reference docs
 
 ### Phase 6: Quality Tools
 **Goal**: 用户拥有代码审查工作流和里程碑管理能力，形成从编写到审查到发布的完整闭环
@@ -115,5 +120,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 2. State Safety | 4/4 | Complete | 2026-04-10 |
 | 3. Agent Contracts | 0/2 | Planning complete | - |
 | 4. Session Management | 0/3 | Planning complete | - |
-| 5. Workflow Enhancement | 0/? | Not started | - |
+| 5. Workflow Enhancement | 0/4 | Planning complete | - |
 | 6. Quality Tools | 0/? | Not started | - |
