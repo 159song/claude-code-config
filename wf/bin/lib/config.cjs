@@ -21,6 +21,10 @@ const CONFIG_DEFAULTS = {
     discuss_mode: 'auto',
     node_repair: true,
     node_repair_budget: 2,
+    code_review: true,
+    code_review_depth: 'standard',
+    code_review_auto_fix: true,
+    code_review_max_iterations: 3,
   },
   planning: {
     commit_docs: true,
@@ -52,6 +56,7 @@ const CONFIG_DEFAULTS = {
       verifier: 'sonnet',
       researcher: 'haiku',
       roadmapper: 'haiku',
+      reviewer: 'sonnet',
     },
   },
 };

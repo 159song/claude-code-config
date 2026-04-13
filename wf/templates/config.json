@@ -7,7 +7,11 @@
     "verifier": true,
     "auto_advance": true,
     "security_enforcement": true,
-    "discuss_mode": "auto"
+    "discuss_mode": "auto",
+    "code_review": true,
+    "code_review_depth": "standard",
+    "code_review_auto_fix": true,
+    "code_review_max_iterations": 3
   },
   "planning": {
     "commit_docs": true
@@ -38,7 +42,8 @@
       "planner": "sonnet",
       "verifier": "sonnet",
       "researcher": "haiku",
-      "roadmapper": "haiku"
+      "roadmapper": "haiku",
+      "reviewer": "sonnet"
     }
   }
 }
