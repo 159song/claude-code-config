@@ -127,14 +127,20 @@
   ┌─────────────────────────────────────────────────────────┐
   │                    命令路由表                             │
   │                                                         │
-  │  "新项目"    → /wf-new-project                          │
-  │  "讨论阶段N" → /wf-discuss-phase N                      │
-  │  "规划阶段N" → /wf-plan-phase N                         │
-  │  "执行阶段N" → /wf-execute-phase N                      │
-  │  "验证/测试" → /wf-verify-work                          │
-  │  "全自动"    → /wf-autonomous        ◀── 推荐默认入口    │
-  │  "快速修复"  → /wf-quick                                │
-  │  "进度"      → /wf-progress                             │
+  │  "新项目"      → /wf-new-project                        │
+  │  "讨论阶段N"   → /wf-discuss-phase N                    │
+  │  "规划阶段N"   → /wf-plan-phase N                       │
+  │  "执行阶段N"   → /wf-execute-phase N                    │
+  │  "验证/测试"   → /wf-verify-work                        │
+  │  "全自动"      → /wf-autonomous      ◀── 推荐默认入口   │
+  │  "快速修复"    → /wf-quick                              │
+  │  "进度"        → /wf-progress                           │
+  │  "代码审查"    → /wf-code-review                        │
+  │  "完成里程碑"  → /wf-complete-milestone                  │
+  │  "新里程碑"    → /wf-new-milestone                      │
+  │  "下一步"      → /wf-next            ◀── 智能路由       │
+  │  "暂停/恢复"   → /wf-pause, /wf-resume                  │
+  │  "配置"        → /wf-settings                           │
   └─────────────────────────────────────────────────────────┘
 
 
@@ -412,13 +418,13 @@ Hooks 运行时机
 
   SessionStart ─────────────────────────────────────────────────────
     │
-    └── wf-session-state.sh     注入 STATE.md 摘要到会话上下文
+    └── wf-session-state.js     注入 STATE.md 摘要到会话上下文（Node.js）
 
   PreToolUse (Write|Edit) ──────────────────────────────────────────
     │
     └── wf-prompt-guard.js      扫描 .planning/ 写入内容的注入模式
 
-  PostToolUse (Bash|Edit|Write|Agent|Task) ─────────────────────────
+  PostToolUse (Bash|Edit|Write|MultiEdit|Agent|Task) ───────────────
     │
     └── wf-context-monitor.js   检查 context 使用率
                                 WARNING  ≤35% → 建议收尾
@@ -490,7 +496,9 @@ Agent 调度关系
     ├── wf-executor ×N      ◀── /wf-execute-phase wave 内并行
     │   (worktree 隔离)         每个 executor 独立执行一个 PLAN
     │
-    └── wf-verifier ×1      ◀── /wf-execute-phase 阶段验证
+    ├── wf-verifier ×1      ◀── /wf-execute-phase 阶段验证
+    │
+    └── wf-reviewer ×1      ◀── /wf-code-review 代码审查
 ```
 
 ---
