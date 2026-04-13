@@ -11,6 +11,121 @@ WF 是一套 Claude Code 个人配置/插件系统，提供结构化项目管理
 
 ---
 
+## 整体执行流程
+
+下图展示 WF 系统从用户输入到任务完成的完整执行路径。四条主路径覆盖不同场景：新项目初始化、快速任务、阶段生命周期（核心循环）、以及全自动模式。菱形节点为关键决策/门控点，标注 "并行" 的节点表示多 agent 并发执行。
+
+```mermaid
+flowchart TD
+    %% ===== 入口层 =====
+    USER([用户输入]) --> DO{"/wf-do 路由<br/>或直接 /wf-* 命令"}
+    DO -->|新项目| NP_START
+    DO -->|快速任务| QK_START
+    DO -->|阶段命令| PH_DISCUSS
+    DO -->|全自动| AUTO_START
+    DO -->|进度/下一步| UTIL["/wf-progress<br/>/wf-next"]
+
+    %% ===== Path 1: 新项目 =====
+    subgraph PATH1 ["路径 1: 新项目 (/wf-new-project)"]
+        NP_START[收集项目上下文] --> NP_CONFIG[配置工作流]
+        NP_CONFIG --> NP_RESEARCH_Q{研究?}
+        NP_RESEARCH_Q -->|是| NP_RESEARCH["4x wf-researcher<br/>（并行）"]
+        NP_RESEARCH_Q -->|否| NP_REQ
+        NP_RESEARCH --> NP_REQ[生成 REQUIREMENTS.md]
+        NP_REQ --> NP_ROADMAP["wf-roadmapper<br/>生成 ROADMAP.md"]
+        NP_ROADMAP --> NP_STATE[初始化 STATE.md]
+        NP_STATE --> NP_DONE([完成 — 建议<br/>discuss-phase 1<br/>或 autonomous])
+    end
+
+    %% ===== Path 2: 快速任务 =====
+    subgraph PATH2 ["路径 2: 快速任务 (/wf-quick)"]
+        QK_START[理解任务] --> QK_OPT_Q{研究/讨论?}
+        QK_OPT_Q -->|是| QK_OPT[研究 / 讨论]
+        QK_OPT_Q -->|否| QK_EXEC
+        QK_OPT --> QK_EXEC["wf-executor<br/>规划 + 执行"]
+        QK_EXEC --> QK_VERIFY_Q{验证?}
+        QK_VERIFY_Q -->|是| QK_VERIFY[快速验证]
+        QK_VERIFY_Q -->|否| QK_DONE
+        QK_VERIFY --> QK_DONE([完成])
+    end
+
+    %% ===== Path 3: 阶段生命周期 =====
+    subgraph PATH3 ["路径 3: 阶段生命周期（核心循环）"]
+        PH_DISCUSS["/wf-discuss-phase N<br/>→ CONTEXT.md"] --> PH_PLAN
+
+        subgraph PLAN_SUB ["规划"]
+            PH_PLAN["/wf-plan-phase N"] --> PH_RESEARCH_Q{研究?}
+            PH_RESEARCH_Q -->|是| PH_RESEARCH[wf-researcher]
+            PH_RESEARCH_Q -->|否| PH_PLANNER
+            PH_RESEARCH --> PH_PLANNER["wf-planner<br/>生成 PLAN.md"]
+            PH_PLANNER --> PH_GATE{计划质量门控<br/>（最多 3 次）}
+            PH_GATE -->|通过| PH_EXEC_START
+            PH_GATE -->|失败| PH_PLANNER
+        end
+
+        subgraph EXEC_SUB ["执行"]
+            PH_EXEC_START["/wf-execute-phase N"]
+            PH_EXEC_START --> PH_WAVE["Wave 循环"]
+            PH_WAVE --> PH_EXECUTORS["wf-executor × N<br/>（Wave 内并行）"]
+            PH_EXECUTORS --> PH_MERGE[Wave 合并]
+            PH_MERGE --> PH_POST_CHECK[波次间检查<br/>回归 + schema]
+            PH_POST_CHECK --> PH_NEXT_WAVE{下一 Wave?}
+            PH_NEXT_WAVE -->|是| PH_WAVE
+            PH_NEXT_WAVE -->|否| PH_VERIFIER
+        end
+
+        subgraph VERIFY_SUB ["验证"]
+            PH_VERIFIER["wf-verifier<br/>4 级渐进验证"]
+            PH_VERIFIER --> PH_VRESULT{验证结果}
+            PH_VRESULT -->|PASS| PH_ADVANCE
+            PH_VRESULT -->|FAIL| PH_GAP[Gap Closure<br/>修复 + 重试 1 次]
+            PH_GAP --> PH_REVERIFY{重新验证}
+            PH_REVERIFY -->|PASS| PH_ADVANCE
+            PH_REVERIFY -->|FAIL| PH_PAUSE([暂停 — 等待用户])
+        end
+
+        PH_ADVANCE([阶段完成 — 推进])
+    end
+
+    %% ===== Path 4: 全自动 =====
+    subgraph PATH4 ["路径 4: 全自动 (/wf-autonomous)"]
+        AUTO_START[解析范围<br/>from / to / only] --> AUTO_CTX{Context 预算<br/>&lt; 40%?}
+        AUTO_CTX -->|不足| AUTO_SAVE([保存状态 — 暂停])
+        AUTO_CTX -->|充足| AUTO_DISCUSS["Skill(discuss-phase)"]
+        AUTO_DISCUSS --> AUTO_PLAN["Skill(plan-phase)"]
+        AUTO_PLAN --> AUTO_EXEC["Skill(execute-phase)<br/>（含 Wave 并行）"]
+        AUTO_EXEC --> AUTO_VERIFY["Skill(verify-work)"]
+        AUTO_VERIFY --> AUTO_VCHECK{验证通过?}
+        AUTO_VCHECK -->|PASS| AUTO_NEXT{下一阶段?}
+        AUTO_VCHECK -->|FAIL| AUTO_GAP[Gap Closure<br/>重试 1 次]
+        AUTO_GAP --> AUTO_RETRY{重试结果}
+        AUTO_RETRY -->|PASS| AUTO_NEXT
+        AUTO_RETRY -->|FAIL| AUTO_SAVE
+        AUTO_NEXT -->|是| AUTO_CTX
+        AUTO_NEXT -->|否| AUTO_DONE([所有阶段完成])
+    end
+
+    %% ===== 样式 =====
+    classDef parallel fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    classDef gate fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+    classDef pause fill:#ffebee,stroke:#c62828,stroke-width:2px
+
+    class NP_RESEARCH,PH_EXECUTORS parallel
+    class NP_RESEARCH_Q,QK_OPT_Q,QK_VERIFY_Q,PH_RESEARCH_Q,PH_GATE,PH_NEXT_WAVE,PH_VRESULT,PH_REVERIFY,AUTO_CTX,AUTO_VCHECK,AUTO_RETRY,AUTO_NEXT gate
+    class PH_PAUSE,AUTO_SAVE pause
+```
+
+### 流程要点
+
+| 维度 | 说明 |
+|------|------|
+| **四条入口路径** | **新项目** — 从零初始化；**快速任务** — 轻量临时任务；**阶段生命周期** — 完整 discuss→plan→execute→verify 循环；**全自动** — 循环包裹阶段生命周期，逐阶段推进 |
+| **并行化位置** | (1) 新项目研究：4 个 wf-researcher 并行；(2) 阶段执行：同一 Wave 内多个 wf-executor 并行（worktree 隔离） |
+| **三个关键门控** | (1) **计划质量门控** — 最多 3 次修订循环；(2) **验证门控** — 4 级渐进验证，失败触发 gap closure（重试 1 次）；(3) **Context 预算门控** — 剩余 < 40% 时暂停，保存状态供新会话恢复 |
+| **错误恢复策略** | 重试 1 次后仍失败 → 暂停并保存状态，等待用户介入。不跳过失败阶段，不无限重试 |
+
+---
+
 ## 系统分层
 
 WF 采用 6 层架构，从用户交互到底层状态管理逐层递进：
