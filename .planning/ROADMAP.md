@@ -95,10 +95,10 @@ Plans:
   5. prompt guard 支持负向前瞻模式，误报率显著降低（用户不再频繁收到不相关警告）
 **Plans:** 4 plans
 Plans:
-- [ ] 05-01-PLAN.md — Rewrite autonomous.md with Skill() chain execution and error recovery
-- [ ] 05-02-PLAN.md — Add phase operations (add/insert/remove) to CLI with decimal numbering
-- [ ] 05-03-PLAN.md — Create /wf-settings interactive configuration management command
-- [ ] 05-04-PLAN.md — Harden prompt guard with negative lookahead and create 3 reference docs
+- [x] 05-01-PLAN.md — Rewrite autonomous.md with Skill() chain execution and error recovery
+- [x] 05-02-PLAN.md — Add phase operations (add/insert/remove) to CLI with decimal numbering
+- [x] 05-03-PLAN.md — Create /wf-settings interactive configuration management command
+- [x] 05-04-PLAN.md — Harden prompt guard with negative lookahead and create 3 reference docs
 
 ### Phase 6: Quality Tools
 **Goal**: 用户拥有代码审查工作流和里程碑管理能力，形成从编写到审查到发布的完整闭环
@@ -107,7 +107,11 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. 运行 code-review 命令启动审查，review-fix 自动应用修复建议，形成审查-修复链
   2. 里程碑支持完整生命周期：new-milestone 创建、complete-milestone 收尾归档、archive 历史保存
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 06-01-PLAN.md — CLI foundation: review.cjs, milestone.cjs modules with tests, config extension, router wiring
+- [ ] 06-02-PLAN.md — Code review subsystem: wf-reviewer agent, code-review workflow with Skill() chain, verify-work integration
+- [ ] 06-03-PLAN.md — Milestone lifecycle: complete-milestone and new-milestone commands and workflows
 
 ## Progress
 
@@ -121,4 +125,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 3. Agent Contracts | 0/2 | Planning complete | - |
 | 4. Session Management | 0/3 | Planning complete | - |
 | 5. Workflow Enhancement | 0/4 | Planning complete | - |
-| 6. Quality Tools | 0/? | Not started | - |
+| 6. Quality Tools | 0/3 | Planning complete | - |
