@@ -14,11 +14,39 @@ const utils = require('./utils.cjs');
  * @returns {object|null} 阶段目录信息，未找到时返回 null
  */
 function findPhaseDir(cwd, phaseNum) {
-  const num = parseInt(phaseNum, 10);
+  const num = parseFloat(phaseNum);
   if (isNaN(num)) return null;
 
   const planningDir = path.join(cwd, '.planning');
 
+  // Decimal phase numbers (e.g., 2.5) — inserted phases
+  if (num !== Math.floor(num)) {
+    // Scan phases/ directory for entries matching the exact decimal (e.g., 02.5-slug)
+    const phasesRoot = path.join(planningDir, 'phases');
+    if (fs.existsSync(phasesRoot)) {
+      const entries = fs.readdirSync(phasesRoot);
+      const decimalPattern = /^0*(\d+(?:\.\d+)?)-/;
+      const matching = entries.find(e => {
+        const m = e.match(decimalPattern);
+        return m && parseFloat(m[1]) === num;
+      });
+      if (matching) {
+        const phaseDir = path.join(phasesRoot, matching);
+        return buildPhaseDirInfo(phaseDir, num, matching);
+      }
+    }
+
+    // Check WF-style phase-2.5/ directory
+    const wfStyleDecimal = path.join(planningDir, `phase-${num}`);
+    if (fs.existsSync(wfStyleDecimal)) {
+      return buildPhaseDirInfo(wfStyleDecimal, num, `phase-${num}`);
+    }
+
+    // Decimal phase not found — do not fall through to integer logic
+    return null;
+  }
+
+  // Integer phase numbers — existing logic
   // 1. 先查 phases/NN-slug/ (GSD 风格)
   const phasesRoot = path.join(planningDir, 'phases');
   if (fs.existsSync(phasesRoot)) {
@@ -93,7 +121,7 @@ function buildPhaseDirInfo(phaseDir, num, dirName) {
  * @param {number|string} phaseNum - 阶段编号
  */
 function phaseInfo(cwd, phaseNum) {
-  const num = parseInt(phaseNum, 10);
+  const num = parseFloat(phaseNum);
   if (isNaN(num)) {
     utils.error(`无效的阶段编号: ${phaseNum}`);
     process.exit(1);
