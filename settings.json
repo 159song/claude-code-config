@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$HOME/.claude/hooks/wf-session-state.sh\""
+            "command": "node \"$HOME/.claude/hooks/wf-session-state.js\""
           }
         ]
       }
