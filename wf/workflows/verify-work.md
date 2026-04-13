@@ -53,8 +53,65 @@ kill %1 2>/dev/null
 > 使用 `model: config.agents.models.verifier || "sonnet"`，解析返回的 JSON 完成标记。
 </step>
 
+<step name="code_review" condition="config.workflow.code_review === true">
+## 3. 代码审查（可选）
+
+在用户验收之前执行代码质量审查，先修复质量问题再让用户验证行为。
+
+**加载配置:**
+
+```bash
+CONFIG_JSON=$(node "$HOME/.claude/wf/bin/wf-tools.cjs" config)
+```
+
+检查 `workflow.code_review` 配置值：
+
+- 如果 `true`：继续执行代码审查
+- 如果 `false` 或未设置：跳过此步骤，直接进入对话式验收
+
+**执行审查:**
+
+从 STATE.md 获取当前阶段编号，调用 code-review 工作流：
+
+```
+Skill(code-review, {
+  phase: <current_phase>,
+  depth: config.workflow.code_review_depth || 'standard'
+})
+```
+
+审查完成后：
+1. 读取 REVIEW.md 结果摘要
+2. 将审查结果注入 UAT 状态（记录到 UAT.md 中）
+3. 如果有自动修复的问题，通知用户：
+
+```
+┌─ 代码审查结果 ──────────────────────────────┐
+│ ✅ 代码审查完成                             │
+│    文件数: {files_reviewed}                 │
+│    发现: {findings.total} 个问题            │
+│    已修复: {fixed_count} 个                 │
+│    剩余: {remaining_count} 个               │
+│                                             │
+│ ▶ 进入对话式验收...                          │
+└───────────────────────────────────────────┘
+```
+
+如果审查未发现问题：
+
+```
+┌─ 代码审查结果 ──────────────────────────────┐
+│ ✅ 代码审查通过，未发现问题                  │
+│                                             │
+│ ▶ 进入对话式验收...                          │
+└───────────────────────────────────────────┘
+```
+</step>
+
 <step name="conversation_loop">
-## 3. 对话式验收
+## 4. 对话式验收
+
+> 注意：如果步骤 3 代码审查已执行，此处用户可重点验证行为和功能，质量问题已在审查中处理。
 
 进入交互循环，用户可以：
 
@@ -87,7 +144,7 @@ kill %1 2>/dev/null
 </step>
 
 <step name="auto_fix">
-## 4. 自动修复
+## 5. 自动修复
 
 对于用户确认需要修复的问题：
 
@@ -107,7 +164,7 @@ kill %1 2>/dev/null
 </step>
 
 <step name="save_state">
-## 5. 保存状态
+## 6. 保存状态
 
 每次交互后更新 `.planning/UAT.md`：
 
@@ -139,7 +196,7 @@ git commit -m "docs: update UAT status"
 </step>
 
 <step name="complete">
-## 6. 验收完成
+## 7. 验收完成
 
 当所有验证项为 PASS 或被用户接受时：
 
