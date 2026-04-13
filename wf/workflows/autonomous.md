@@ -1,91 +1,141 @@
-<purpose>
-全自动模式。对所有剩余阶段执行 讨论 → 规划 → 执行 流水线。
-只在需要用户判断时暂停（灰色地带确认、阻塞问题、验证请求）。
+# Autonomous Workflow
 
-这是 WF 系统的默认推荐入口。用户确认需求和路线图后，
-系统自动推进每个阶段直到完成。
-</purpose>
+全自动模式。对所有剩余阶段执行 讨论 -> 规划 -> 执行 -> 验证 流水线。
+只在需要用户判断时暂停（阻塞问题、验证失败、context 不足）。
 
-<flags>
-- `--from N` — 从阶段 N 开始（而非第一个未完成阶段）。
-- `--to N` — 执行到阶段 N 后停止。
-- `--only N` — 只执行阶段 N。
-- `--interactive` — 讨论阶段使用交互模式（逐个决策），规划和执行使用自动模式。
-</flags>
+## Flags
 
-<process>
+- `--from N` -- 从阶段 N 开始（而非第一个未完成阶段）
+- `--to N` -- 执行到阶段 N 后停止
+- `--only N` -- 只执行阶段 N
+- `--interactive` -- 讨论阶段使用交互模式（逐个决策），其余阶段仍为自动
 
-<step name="discover_phases">
-## 1. 发现待执行阶段
+---
 
-读取 `.planning/ROADMAP.md` 和 `.planning/STATE.md`：
+## Step 1: Parse Flags and Discover Phases
+
+解析 `$ARGUMENTS` 中的标志：
 
 ```bash
-# 获取阶段列表
-cat .planning/ROADMAP.md
-cat .planning/STATE.md
+# 获取路线图分析结果
+ROADMAP_JSON=$(node "$HOME/.claude/wf/bin/wf-tools.cjs" roadmap analyze)
 ```
 
-确定执行范围：
-- 默认: 从第一个未完成阶段到最后一个阶段
-- `--from N`: 从阶段 N 开始
-- `--to N`: 到阶段 N 结束
-- `--only N`: 只执行阶段 N
+从 `ROADMAP_JSON` 提取所有阶段列表和 `current_phase`（第一个非 verified 阶段）。
+
+**确定执行范围:**
+
+- 默认: 从 `current_phase` 到最后一个阶段
+- `--from N`: 起始阶段 = N（parseInt 验证，拒绝 NaN 或负数）
+- `--to N`: 结束阶段 = N（含，parseInt 验证）
+- `--only N`: 起始 = 结束 = N（parseInt 验证）
+
+**输入验证（T-05-01 mitigation）:** 对 --from/--to/--only 的值执行 parseInt，若结果为 NaN 或 <= 0，立即报错退出，不执行任何阶段。
+
+显示执行横幅：
 
 ```
 ╔══════════════════════════════════════════╗
 ║  WF · 自主模式                           ║
 ╚══════════════════════════════════════════╝
 
-执行范围: Phase {from} → Phase {to}
+执行范围: Phase {from} -> Phase {to}
 阶段列表:
-  ⬜ Phase {N}: {{name}}
-  ⬜ Phase {N+1}: {{name}}
+  ⬜ Phase {N}: {name}
+  ⬜ Phase {N+1}: {name}
   ...
 ```
-</step>
 
-<step name="phase_loop">
-## 2. 阶段循环
+---
 
-对每个待执行阶段，按顺序执行：
+## Step 2: Phase Loop
 
-### 2.1 讨论阶段
+对执行范围内的每个阶段 N，按顺序执行以下子步骤。
 
-调用 discuss-phase 工作流，使用 `--auto --batch` 模式：
+### 2.1 Context Budget Check
 
-```
-所有灰色地带自动分析，生成推荐方案表：
+每个阶段开始前检查 context 预算：
 
-| # | 决策点 | 推荐 | 原因 |
-|---|--------|------|------|
-| 1 | ... | ... | ... |
-
-确认以上 {N} 个决策？ [Y/n/逐个审查]
+```bash
+STATE_JSON=$(node "$HOME/.claude/wf/bin/wf-tools.cjs" state json)
 ```
 
-- 用户确认 → 继续
-- 用户要求逐个审查 → 切换到交互模式讨论
-- 如果 `--interactive`，直接使用交互模式
+如果 wf-context-monitor 已记录 remaining < 40%（从 session metrics 或 hook warning 判断），暂停自主执行：
 
-### 2.2 规划阶段
+```bash
+node "$HOME/.claude/wf/bin/wf-tools.cjs" session pause \
+  --phase <N> --plan 0 --step discuss \
+  --stopped_at "Context budget low, pausing autonomous"
+```
 
-调用 plan-phase 工作流，包含：
-- 实现研究（如果开启）
-- 计划生成
-- 质量检查（最多 3 次修订）
-- 安全门禁（如果开启）
+显示消息后停止循环：
 
-规划完成后自动继续，不暂停确认。
+> Context 预算不足。在新会话中运行 `/wf-autonomous --from N` 继续。
 
-### 2.3 执行阶段
+### 2.2 Discuss Phase
 
-调用 execute-phase 工作流：
-- wave 级并行执行
-- 每个 wave 后自动检查
-- 验证阶段目标
+**Skill() 目标硬编码为已知值（T-05-02 mitigation）:**
 
-### 2.4 阶段完成
+默认模式（无 --interactive 标志）：
+
+```
+Skill(discuss-phase, { phase: N, flags: "--auto --batch" })
+```
+
+如果 `--interactive` 标志存在：
+
+```
+Skill(discuss-phase, { phase: N })
+```
+
+讨论完成后自动继续，不等待用户确认。
+
+### 2.3 Plan Phase
+
+```
+Skill(plan-phase, { phase: N })
+```
+
+计划质量门禁由 plan-phase 工作流内部处理（最多 3 次修订循环，参见 gates.md）。完成后自动继续。
+
+### 2.4 Execute Phase
+
+```
+Skill(execute-phase, { phase: N })
+```
+
+执行阶段内部处理 wave 级并行和逐任务 commit。
+
+### 2.5 Verify and Gap Closure
+
+```
+Skill(verify-work)
+```
+
+检查验证结果。如果验证通过（无 FAIL），跳转到 2.6。
+
+**如果验证失败（D-02 gap closure 规则）：**
+
+1. 显示 "Phase N 验证失败，尝试 gap closure..."
+2. 分析验证报告中的 FAIL 项，生成修复计划
+3. 执行修复任务
+4. 再次验证：`Skill(verify-work)`
+5. 如果仍然失败：
+   - 暂停自主执行，显示失败详情
+   - 保存状态：
+     ```bash
+     node "$HOME/.claude/wf/bin/wf-tools.cjs" session pause \
+       --phase <N> --plan 0 --step verify \
+       --stopped_at "Verification failed after gap closure"
+     ```
+   - 提示: "验证仍未通过。运行 `/wf-autonomous --from N` 在修复后继续。"
+   - **停止循环。不跳过到下一阶段。**（D-02: cross-phase failure = retry then pause, never skip）
+
+Gap closure 限制：每个阶段最多 1 次自动重试（T-05-03 mitigation），避免无限循环。
+
+### 2.6 Advance to Next Phase
+
+显示阶段完成横幅：
 
 ```
 ✅ Phase {N} 完成 ████████████████ 100%
@@ -95,66 +145,56 @@ cat .planning/STATE.md
 ▶ 推进到 Phase {N+1}...
 ```
 
-通过 CLI 推进到下一阶段：
+如果存在下一个阶段，推进状态：
+
 ```bash
-wf-tools state begin-phase --phase {N+1}
+node "$HOME/.claude/wf/bin/wf-tools.cjs" state begin-phase --phase <N+1>
 ```
-</step>
 
-<step name="gap_closure">
-## 3. Gap 修复
+---
 
-如果验证发现问题，自动进行一次 gap closure：
+## Step 3: Completion
 
-1. 分析验证失败项
-2. 生成修复计划
-3. 执行修复
-4. 重新验证
-
-如果第二次验证仍有问题 → 暂停，展示问题列表，请求用户决策。
-最多 1 次自动重试，避免无限循环。
-</step>
-
-<step name="complete">
-## 4. 全部完成
-
-所有阶段执行完成后：
+所有阶段执行完成后，显示汇总：
 
 ```
 ╔══════════════════════════════════════════╗
 ║  WF · 所有阶段执行完成                   ║
 ╚══════════════════════════════════════════╝
 
-  Phase 1: ✅ {{name}}
-  Phase 2: ✅ {{name}}
-  Phase 3: ✅ {{name}}
+  Phase 1: ✅ {name}
+  Phase 2: ✅ {name}
+  Phase 3: ✅ {name}
   ...
 
-  总任务: {{total_tasks}}
-  总验证: {{total_verifications}} PASS
+  总任务: {total_tasks}
+  总验证: {total_verifications} PASS
 
 ▶ 建议: /wf-verify-work 进行最终验收
 ```
-</step>
 
-</process>
+---
 
-<error_handling>
-## 错误处理
+## Error Handling
 
-1. **单个任务失败:** 记录错误，跳过该任务，继续执行。在阶段摘要中标记失败任务。
-2. **整个计划失败:** 暂停当前阶段，展示错误信息，等待用户决策。
-3. **验证失败:** 自动 gap closure（1 次）。如果仍然失败，暂停等待用户。
-4. **Context 耗尽:** 通过 CLI 保存当前状态，提示用户在新会话中运行 `/wf-autonomous --from {current_phase}`。
+| 场景 | 处理 |
+|------|------|
+| 单个任务失败 | 记录在 SUMMARY.md，继续该计划的其他任务 |
+| 整个计划失败 | 暂停当前阶段，显示错误，等待用户 |
+| 验证失败 | 单次 gap closure 重试，仍失败则暂停（不跳阶段） |
+| Context 耗尽 | 通过 CLI 保存状态，提示新会话恢复 |
+
+Context 耗尽时的状态保存：
+
 ```bash
-wf-tools state patch --status paused --stopped_at "Context exhausted at Phase {N}"
+node "$HOME/.claude/wf/bin/wf-tools.cjs" session pause \
+  --phase <N> --plan <P> --step <S> \
+  --stopped_at "Context exhausted at Phase {N}"
 ```
-</error_handling>
 
-<success_criteria>
-- [ ] 所有指定阶段执行完成
-- [ ] 每个阶段的验证通过
-- [ ] STATE.md 通过 CLI 命令正确更新（`wf-tools state json` 验证）
-- [ ] 所有变更已提交到 git
-- [ ] 失败项已清晰报告
-</success_criteria>
+## Safety Constraints
+
+- **Skill() 目标白名单:** 只允许 `discuss-phase`, `plan-phase`, `execute-phase`, `verify-work`（T-05-02）
+- **输入验证:** --from/--to/--only 值必须为正整数（T-05-01）
+- **重试限制:** gap closure 每阶段最多 1 次（T-05-03, D-02）
+- **状态更新:** 全部通过 `wf-tools` CLI 命令，禁止直接 Write/Edit STATE.md
