@@ -50,7 +50,8 @@ switch (command) {
     git.run(cwd, subArgs);
     break;
   case 'config':
-    config.run(cwd);
+  case 'settings':
+    config.run(cwd, subArgs);
     break;
   case 'validate':
     validate.run(cwd, subArgs);
@@ -62,6 +63,6 @@ switch (command) {
     roadmap.run(cwd, subArgs);
     break;
   default:
-    process.stderr.write('WF Tools v1.0.0\n用法: wf-tools [--cwd <path>] <command>\n命令: init|state|roadmap|phase|phase-ops|progress|commit|config|validate|session\n');
+    process.stderr.write('WF Tools v1.0.0\n用法: wf-tools [--cwd <path>] <command>\n命令: init|state|roadmap|phase|phase-ops|progress|commit|config|settings|validate|session\n');
     process.exit(1);
 }
