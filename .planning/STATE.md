@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-10)
 Phase: 06
 Plan: Not started
 Status: Executing Phase 05
-Last activity: 2026-04-13 - Completed quick task 260413-kfb: 同步 .planning/ARCHITECTURE.md 添加整体执行流程图
+Last activity: 2026-04-13 - Completed quick task 260413-kqj: 根据最新的 workflow 更新./ARCHITECTURE.md内容,要保留整体执行流程图
 
 Progress: [..........] 0%
 
@@ -82,6 +82,7 @@ None yet.
 | 260413-jxn | 更新./ARCHITECTURE.md | 2026-04-13 | dea836b | [260413-jxn-architecture-md](./quick/260413-jxn-architecture-md/) |
 | 260413-k6w | 更新ARCHITECTURE.md添加整体执行流程图 | 2026-04-13 | 4b357bd | [260413-k6w-architecture-md](./quick/260413-k6w-architecture-md/) |
 | 260413-kfb | 同步 .planning/ARCHITECTURE.md 添加整体执行流程图 | 2026-04-13 | fba2fe0 | [260413-kfb-planning-architecture-md](./quick/260413-kfb-planning-architecture-md/) |
+| 260413-kqj | 根据最新的 workflow 更新./ARCHITECTURE.md内容,要保留整体执行流程图 | 2026-04-13 | 52ad864 | [260413-kqj-workflow-architecture-md](./quick/260413-kqj-workflow-architecture-md/) |
 
 ## Session Continuity
 
