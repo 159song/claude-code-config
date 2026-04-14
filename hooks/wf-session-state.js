@@ -186,6 +186,20 @@ function main() {
     }
   }
 
+  // Check for CONTINUATION.md (auto-compact recovery checkpoint)
+  const continuationPath = path.join(projectRoot, '.planning', 'CONTINUATION.md');
+  const hasContinuation = fs.existsSync(continuationPath);
+  let continuationPhase = null;
+  let continuationStep = null;
+  if (hasContinuation) {
+    try {
+      const contContent = fs.readFileSync(continuationPath, 'utf8');
+      const { frontmatter: contFm } = parseFm(contContent);
+      continuationPhase = contFm.phase || null;
+      continuationStep = contFm.step || null;
+    } catch (e) {}
+  }
+
   // D-13: Build structured session state JSON
   const sessionState = {
     milestone: frontmatter.milestone || null,
@@ -194,13 +208,18 @@ function main() {
     status: frontmatter.status || 'unknown',
     progress_pct: (frontmatter.progress && frontmatter.progress.percent) || 0,
     has_handoff: hasHandoff,
-    resume_hint: resumeHint
+    resume_hint: resumeHint,
+    has_continuation: hasContinuation,
+    continuation_phase: continuationPhase,
+    continuation_step: continuationStep
   };
 
   // D-16: Build human-readable Chinese summary
   let humanReadable = '## 项目状态提醒\n\n';
   humanReadable += `阶段 ${sessionState.phase || '?'} | 步骤: ${sessionState.step} | 状态: ${sessionState.status} | 进度: ${sessionState.progress_pct}%\n`;
-  if (sessionState.has_handoff) {
+  if (sessionState.has_continuation) {
+    humanReadable += `检测到自主模式检查点: Phase ${sessionState.continuation_phase} / ${sessionState.continuation_step}。运行 /wf-autonomous 自动从检查点恢复。\n`;
+  } else if (sessionState.has_handoff) {
     humanReadable += '存在暂停检查点，运行 /wf-resume 恢复。\n';
   }
 

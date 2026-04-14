@@ -257,3 +257,16 @@ Do not make direct repo edits outside a GSD workflow unless the user explicitly 
 > Profile not yet configured. Run `/gsd-profile-user` to generate your developer profile.
 > This section is managed by `generate-claude-profile` -- do not edit manually.
 <!-- GSD:profile-end -->
+
+## Compact instructions
+
+When compacting this conversation, preserve the following WF workflow state:
+
+1. **Current execution position**: Which phase number, which step (discuss/plan/execute/verify), which wave/task
+2. **CONTINUATION checkpoint**: If `.planning/CONTINUATION.md` exists, read it and include its full content in the summary
+3. **Pending work**: List of remaining phases/steps that still need execution
+4. **Active autonomous mode**: Whether `/wf-autonomous` was running and its flags (--from/--to/--only)
+5. **Key decisions**: Any user decisions or confirmations made during this session
+6. **Last verification status**: PASS/WARN/FAIL results from the most recent phase
+
+After compaction, immediately check for `.planning/CONTINUATION.md` and resume the workflow from the recorded position. Do NOT ask the user what to do — read the checkpoint and continue automatically.

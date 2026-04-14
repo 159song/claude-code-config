@@ -28,8 +28,8 @@
 - VERIFICATION.md 中的 WARN/FAIL 项 → 待关注项
 </step>
 
-<step name="smoke_test" condition="--smoke 或首次 UAT">
-## 2. 冒烟测试（可选）
+<step name="smoke_test" condition="--smoke 或首次 UAT 或 autonomous 模式">
+## 2. 冒烟测试
 
 自动执行基础检查：
 
@@ -108,8 +108,12 @@ Skill(code-review, {
 ```
 </step>
 
-<step name="conversation_loop">
+<step name="conversation_loop" condition="非 smoke-only 模式">
 ## 4. 对话式验收
+
+> **Smoke-only 模式跳过:** 当 `config.workflow.smoke_only_verify === true` 或 `--smoke` 标志存在时，
+> 跳过此对话循环。冒烟测试 + 代码审查通过即视为验证通过，直接跳转到步骤 6 保存状态。
+> 这是自主模式（`/wf-autonomous`）的默认行为，避免在自动执行中等待用户交互。
 
 > 注意：如果步骤 3 代码审查已执行，此处用户可重点验证行为和功能，质量问题已在审查中处理。
 

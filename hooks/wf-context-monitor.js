@@ -15,8 +15,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const WARNING_THRESHOLD = 35;
-const CRITICAL_THRESHOLD = 25;
+const WARNING_THRESHOLD = 30;   // 30% remaining = 70% used
+const CRITICAL_THRESHOLD = 15;  // 15% remaining = 85% used
 const STALE_SECONDS = 60;
 const DEBOUNCE_CALLS = 5;
 
@@ -87,18 +87,24 @@ process.stdin.on('end', () => {
 
     const isWfActive = fs.existsSync(path.join(cwd, '.planning', 'STATE.md'));
 
+    // 检测 CONTINUATION.md 存在（autonomous 模式检查点）
+    const hasContinuation = fs.existsSync(path.join(cwd, '.planning', 'CONTINUATION.md'));
+
     let message;
     if (isCritical) {
       message = isWfActive
         ? `CONTEXT 严重不足: 使用率 ${usedPct}%，剩余 ${remaining}%。` +
-          'Context 即将耗尽。不要开始新的复杂工作。' +
-          '通知用户 context 不足，建议保存当前状态后在新会话中继续。'
+          (hasContinuation
+            ? 'CONTINUATION.md 检查点已存在，auto-compact 将自动触发并恢复。继续当前任务，完成后 auto-compact 会压缩 context。'
+            : 'Context 即将耗尽。确保 CONTINUATION.md 检查点已写入，然后继续执行。auto-compact 会自动处理 context 压缩。')
         : `CONTEXT 严重不足: 使用率 ${usedPct}%，剩余 ${remaining}%。` +
           'Context 即将耗尽。通知用户并询问如何继续。';
     } else {
       message = isWfActive
         ? `CONTEXT 警告: 使用率 ${usedPct}%，剩余 ${remaining}%。` +
-          '避免开始新的复杂工作。如果不在计划步骤之间，通知用户准备暂停。'
+          (hasContinuation
+            ? 'CONTINUATION.md 检查点已就绪。可安全继续，auto-compact 会在需要时自动压缩。'
+            : '建议尽快写入 CONTINUATION.md 检查点，确保 auto-compact 后能恢复。')
         : `CONTEXT 警告: 使用率 ${usedPct}%，剩余 ${remaining}%。` +
           '注意 context 有限，避免不必要的探索。';
     }

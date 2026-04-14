@@ -42,7 +42,11 @@ orchestrator 保持轻量：发现计划 → 分析依赖 → 分波 → 派发 
 
 ### 并行模式（默认）
 
-同一 wave 内的计划并行执行，每个计划启动一个 `wf-executor` agent：
+同一 wave 内的计划并行执行，每个计划启动一个独立的 `wf-executor` sub-agent：
+
+> **Sub-agent 隔离:** 每个 executor agent 运行在独立的 worktree 中，拥有独立的 context window。
+> 这意味着执行阶段是 context 消耗最友好的步骤 -- 主 session 只需要派发和收集结果，
+> 不需要加载实际的代码文件。这是自主模式能跨多阶段运行的关键设计。
 
 ### 恢复检测
 

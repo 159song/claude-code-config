@@ -108,11 +108,22 @@ commit message 使用 Conventional Commits 格式：
 
 1. 读取 `/tmp/claude-ctx-{session_id}.json`（session_id 来自输入合同）
 2. 解析 `used_pct` 字段
-3. 如果 `used_pct >= 70`：生成 partial SUMMARY.md（done/pending marks），输出 status "partial"，立即停止
+3. 预算决策：
+   - `used_pct < 70`：正常继续下一个任务
+   - `used_pct 70-80`：继续执行，但记录警告到 SUMMARY.md 备注中
+   - `used_pct >= 80`：生成 partial SUMMARY.md（done/pending marks），输出 status "partial"，停止
 
 > 只在任务之间检查 context，不在任务执行中途检查。中途检查会打断原子操作。
 
 如果文件不存在或 timestamp 超过 60 秒（过期数据），跳过本次预算检查，继续执行下一个任务。
+
+### Wave 级 Compact 策略
+
+Executor agent 运行在独立 worktree 中，有自己的 context window。当一个 wave 包含多个任务时：
+
+- **任务间预算估算:** 对剩余任务的 context 消耗做粗略估算（基于 `files` 字段的文件数量）
+- **提前停止:** 如果预估剩余任务需要的 context 超过可用余量，提前生成 partial SUMMARY
+- **恢复友好:** partial SUMMARY 记录精确的恢复点，下次调用时跳过已完成任务
 
 ### Partial SUMMARY 格式
 
@@ -215,7 +226,7 @@ npm test 2>/dev/null || true
 | Condition | Status | Behavior |
 |-----------|--------|----------|
 | Missing required input | failed | Summary explains what's missing |
-| Context budget exceeded (used_pct >= 70) | partial | Partial SUMMARY.md saved with done/pending marks |
+| Context budget exceeded (used_pct >= 80) | partial | Partial SUMMARY.md saved with done/pending marks |
 | Unresolvable task failure after 2 retries | failed | Summary explains failure and last error |
 | All tasks completed | complete | Full SUMMARY.md with all tasks done |
 </output_contract>
