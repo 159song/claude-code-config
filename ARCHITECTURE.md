@@ -3,7 +3,7 @@
 ## 目录结构
 
 ```
-/Users/zxs/Desktop/wf-workflow/
+/Users/zxs/Desktop/claude-code-config/
 ├── VERSION                          # 版本号
 ├── package.json                     # CommonJS 配置
 ├── settings.json                    # Hook 配置（安装时复制到 .claude/settings.json）
@@ -13,6 +13,7 @@
 │   │   ├── wf-tools.cjs             # CLI 入口（命令分发）
 │   │   └── lib/                     # 模块化功能库
 │   │       ├── config.cjs           # 配置管理（读取/写入/schema）
+│   │       ├── frontmatter.cjs      # 共享 YAML frontmatter 解析/序列化
 │   │       ├── git.cjs              # Git 操作封装
 │   │       ├── init.cjs             # 初始化和阶段信息
 │   │       ├── milestone.cjs        # 里程碑归档和重置
@@ -24,6 +25,7 @@
 │   │       ├── state.cjs            # STATE.md 读写
 │   │       ├── utils.cjs            # 通用工具函数
 │   │       ├── validate.cjs         # 输入验证
+│   │       ├── merge-settings.cjs  # settings.json 智能合并工具
 │   │       └── *.test.cjs           # 单元测试文件
 │   ├── workflows/                   # 15 个核心工作流
 │   │   ├── do.md                    # 意图路由 — 自然语言 → 命令匹配
@@ -48,7 +50,11 @@
 │   │   ├── agent-contracts.md       # Agent 合同定义（输入/输出/完成标记）
 │   │   ├── anti-patterns.md         # 工作流反模式（避免的常见错误）
 │   │   ├── context-budget.md        # 上下文预算管理策略
-│   │   └── continuation-format.md  # 会话续接格式（HANDOFF.json 规范）
+│   │   ├── continuation-format.md  # 会话续接格式（HANDOFF.json 规范）
+│   │   ├── worktree-lifecycle.md    # Sub-agent worktree 隔离生命周期
+│   │   ├── shared-patterns.md       # Wave 执行模型/完成标记/预算检查
+│   │   ├── config-precedence.md     # 配置优先级（CLI > env > config > defaults）
+│   │   └── troubleshooting.md       # 常见问题诊断与恢复
 │   └── templates/                   # 项目模板
 │       ├── config.json              # 工作流配置模板（auto 模式默认）
 │       ├── project.md               # 项目文档模板
@@ -82,13 +88,15 @@
 │   ├── wf-roadmapper.md             # 路线图设计 — 阶段划分/需求映射/依赖分析
 │   └── wf-reviewer.md               # 代码审查器 — 逐文件审查/4 维度分析/REVIEW.md
 │
-├── hooks/                           # 5 个 Claude Code hooks
+├── hooks/                           # 4 个 Claude Code hooks + 测试
 │   ├── wf-session-state.js          # SessionStart — 注入项目状态提醒（Node.js）
-│   ├── wf-session-state.sh          # SessionStart — 遗留 Bash 版本（备用）
 │   ├── wf-context-monitor.js        # PostToolUse (Bash|Edit|Write|MultiEdit|Agent|Task) — 监控 context 使用率
 │   ├── wf-prompt-guard.js           # PreToolUse — 检测 prompt injection
+│   ├── wf-statusline.js             # StatusLine — 状态栏显示
+│   ├── wf-session-state.test.cjs    # 单元测试
+│   ├── wf-context-monitor.test.cjs  # 单元测试
 │   ├── wf-prompt-guard.test.cjs     # 单元测试
-│   └── wf-statusline.js             # StatusLine — 状态栏显示
+│   └── wf-statusline.test.cjs       # 单元测试
 │
 └── .claude/                         # Claude Code 运行时配置
     ├── package.json                 # CommonJS 声明
@@ -96,14 +104,26 @@
     └── wf/VERSION                   # 版本文件
 
 
-安装方式:
-  commands/wf/  →  <project>/.claude/commands/wf/
-  agents/       →  <project>/.claude/agents/
-  hooks/        →  <project>/.claude/hooks/
-  wf/           →  <project>/.claude/wf/
-  settings.json →  <project>/.claude/settings.json
-  
-  命令文件中 {{WF_ROOT}} 替换为实际安装路径
+安装方式 (wf/bin/install.sh):
+  commands/wf/  →  $HOME/.claude/commands/wf/    (16 个命令入口)
+  agents/wf-*   →  $HOME/.claude/agents/         (6 个 Agent)
+  hooks/wf-*.js →  $HOME/.claude/hooks/          (4 个 Hook, 排除 *.test.*)
+  wf/           →  $HOME/.claude/wf/             (workflows/references/templates/bin)
+  settings.json →  $HOME/.claude/settings.json   (智能合并, 不覆盖用户配置)
+  VERSION       →  $HOME/.claude/wf/VERSION
+
+  安装命令:
+    ./wf/bin/install.sh              # 安装/升级
+    ./wf/bin/install.sh --dry-run    # 预览操作
+    ./wf/bin/install.sh --force      # 强制重新安装
+    ./wf/bin/install.sh --uninstall  # 卸载 WF
+
+  settings.json 合并策略 (merge-settings.cjs):
+    hooks       — 按 wf- 关键字匹配更新, 保留用户自定义 hook
+    statusLine  — 仅覆盖 WF 自己的 statusLine, 不替换用户自定义
+    permissions — 取并集, 不重复
+    env         — source 提供默认值, target 已有值优先
+    其他字段    — 保留 target 已有值, source 补充缺失项
 ```
 
 ---
@@ -653,8 +673,9 @@ Hooks 运行时机
   PostToolUse (Bash|Edit|Write|MultiEdit|Agent|Task) ───────────────
     │
     └── wf-context-monitor.js   检查 context 使用率
-                                WARNING  ≤35% → 建议收尾
-                                CRITICAL ≤25% → 建议保存状态
+                                WARNING  ≤30% → 确保 CONTINUATION.md 检查点已写入
+                                CRITICAL ≤15% → auto-compact 即将触发，确认检查点就绪
+                                防抖: 同级别警告至少间隔 60 秒，级别升级立即触发
 
   StatusLine (持续) ────────────────────────────────────────────────
     │

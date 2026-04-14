@@ -53,13 +53,15 @@ WF 是一套 Claude Code 个人配置/插件系统，提供结构化项目管理
 - macOS (tested, primary development)
 - Linux (Bash compatible)
 - Windows (WSL/Git Bash for shell hooks)
-## Installation Structure
-- Files from repository root are copied to project's `.claude/` directory:
-- Command files contain `{{WF_ROOT}}` placeholder replaced with actual installation path
+## Installation
+- Install target: `$HOME/.claude/` (global, not per-project)
+- Install command: `./wf/bin/install.sh` (supports `--dry-run`, `--force`, `--uninstall`)
+- `settings.json` is intelligently merged via `merge-settings.cjs` (preserves user config)
+- Test files (`*.test.cjs`) are excluded from installation
 ## Version Management
 - `VERSION` file: `1.0.0`
-- Semantic versioning used
-- Version available at `wf/VERSION` after installation
+- Semantic versioning with upgrade/downgrade detection
+- Version available at `$HOME/.claude/wf/VERSION` after installation
 <!-- GSD:stack-end -->
 
 <!-- GSD:conventions-start source:CONVENTIONS.md -->
