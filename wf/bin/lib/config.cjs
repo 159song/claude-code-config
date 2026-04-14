@@ -25,6 +25,9 @@ const CONFIG_DEFAULTS = {
     code_review_depth: 'standard',
     code_review_auto_fix: true,
     code_review_max_iterations: 3,
+    auto_compact: true,
+    smoke_only_verify: true,
+    continuation_checkpoint: true,
   },
   planning: {
     commit_docs: true,
@@ -49,6 +52,12 @@ const CONFIG_DEFAULTS = {
   hooks: {
     context_warnings: true,
   },
+  telemetry: {
+    enabled: false,
+    track_duration: true,
+    track_commits: true,
+    track_files_changed: true,
+  },
   agents: {
     models: {
       executor: 'sonnet',
@@ -71,6 +80,7 @@ function deepMerge(base, override) {
   if (!override || typeof override !== 'object') return base;
   const result = Object.assign({}, base);
   for (const key of Object.keys(override)) {
+    // Arrays are intentionally replaced, not merged (see config-precedence.md)
     if (
       override[key] !== null &&
       typeof override[key] === 'object' &&

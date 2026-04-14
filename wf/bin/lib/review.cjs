@@ -87,7 +87,7 @@ function extractKeyFilesFromSummaries(phaseDir) {
     return [];
   }
 
-  const summaryFiles = entries.filter(e => e.endsWith('-SUMMARY.md'));
+  const summaryFiles = entries.filter(e => e.includes('SUMMARY') && e.endsWith('.md'));
 
   for (const sf of summaryFiles) {
     const content = fs.readFileSync(path.join(phaseDir, sf), 'utf8');

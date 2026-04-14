@@ -79,14 +79,13 @@ function main() {
   if (!/^[a-zA-Z0-9_-]+$/.test(sessionId)) process.exit(0);
 
   const cwd = data.cwd || process.cwd();
-  const homeDir = os.homedir();
-  const libDir = path.join(homeDir, '.claude', 'wf', 'bin', 'lib');
 
-  // Load utils module for file I/O helpers
+  // Load utils module for file I/O helpers (__dirname-relative, works in dev and installed contexts)
   let utils;
   try {
-    utils = require(path.join(libDir, 'utils.cjs'));
+    utils = require(path.join(__dirname, '..', 'wf', 'bin', 'lib', 'utils.cjs'));
   } catch (e) {
+    // Fallback: if utils.cjs not found, exit gracefully
     process.exit(0);
   }
 

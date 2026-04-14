@@ -5,6 +5,7 @@
 
 const path = require('path');
 const utils = require('./utils.cjs');
+const { parseFlag } = require('./utils.cjs');
 
 const { parseFrontmatter, serializeFrontmatter, parseYamlValue, formatYamlValue } = require('./frontmatter.cjs');
 
@@ -83,8 +84,9 @@ function stateSet(cwd, key, value) {
   let content = utils.readFile(statePath);
 
   if (!content) {
-    // 创建新 STATE.md with frontmatter
-    content = `---\n${key}: ${value}\n---\n\n# Project State\n`;
+    // 创建新 STATE.md with required keys so it passes stateValidate
+    const now = new Date();
+    content = `---\nstatus: active\nlast_updated: "${now.toISOString()}"\nlast_activity: ${now.toISOString().slice(0, 10)}\n${key}: ${value}\n---\n\n# Project State\n`;
     utils.writeFile(statePath, content);
     return;
   }
@@ -262,21 +264,6 @@ function stateValidate(cwd) {
 }
 
 /**
- * 从参数数组中解析 --flag value 对
- * @param {string[]} args - 参数数组
- * @param {string} flag - 标志名（不含 --）
- * @returns {string|null} 标志值，未找到时返回 null
- */
-function parseFlag(args, flag) {
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === `--${flag}` && i + 1 < args.length) {
-      return args[i + 1];
-    }
-  }
-  return null;
-}
-
-/**
  * 开始阶段：原子设置 status、stopped_at、timestamps（STATE-06）
  * 用法: wf-tools state begin-phase --phase <N>
  * @param {string} cwd - 项目根目录
@@ -385,4 +372,4 @@ function run(cwd, args) {
   }
 }
 
-module.exports = { parseFrontmatter, serializeFrontmatter, parseYamlValue, parseStateMd, stateGet, stateSet, stateJson, statePatch, stateMerge, stateValidate, stateBeginPhase, stateAdvancePlan, run };
+module.exports = { parseStateMd, stateGet, stateSet, stateJson, statePatch, stateMerge, stateValidate, stateBeginPhase, stateAdvancePlan, run };

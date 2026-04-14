@@ -75,19 +75,29 @@ process.stdin.on('end', () => {
       }
     }
 
-    // 当前任务
+    // 当前任务 (cached by todosDir mtime to avoid repeated readdirSync + statSync)
     let task = '';
     if (session && fs.existsSync(todosDir)) {
       try {
-        const files = fs.readdirSync(todosDir)
-          .filter(f => f.startsWith(session) && f.includes('-agent-') && f.endsWith('.json'))
-          .map(f => ({ name: f, mtime: fs.statSync(path.join(todosDir, f)).mtime }))
-          .sort((a, b) => b.mtime - a.mtime);
+        let dirMtime;
+        try { dirMtime = fs.statSync(todosDir).mtimeMs; } catch (e) { dirMtime = null; }
 
-        if (files.length > 0) {
-          const todos = JSON.parse(fs.readFileSync(path.join(todosDir, files[0].name), 'utf8'));
-          const inProgress = todos.find(t => t.status === 'in_progress');
-          if (inProgress) task = inProgress.activeForm || '';
+        if (dirMtime != null) {
+          if (!global._wfTodoCache || global._wfTodoCache.dirMtime !== dirMtime || global._wfTodoCache.session !== session) {
+            const files = fs.readdirSync(todosDir)
+              .filter(f => f.startsWith(session) && f.includes('-agent-') && f.endsWith('.json'))
+              .map(f => ({ name: f, mtime: fs.statSync(path.join(todosDir, f)).mtime }))
+              .sort((a, b) => b.mtime - a.mtime);
+
+            let cachedTask = '';
+            if (files.length > 0) {
+              const todos = JSON.parse(fs.readFileSync(path.join(todosDir, files[0].name), 'utf8'));
+              const inProgress = todos.find(t => t.status === 'in_progress');
+              if (inProgress) cachedTask = inProgress.activeForm || '';
+            }
+            global._wfTodoCache = { dirMtime, session, task: cachedTask };
+          }
+          task = global._wfTodoCache.task;
         }
       } catch (e) {}
     }

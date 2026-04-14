@@ -8,7 +8,7 @@ const fs = require('fs');
 const utils = require('./utils.cjs');
 
 // 同时匹配 ## Phase N: 和 ### Phase N: 格式（H2 和 H3），支持小数点阶段号
-const PHASE_PATTERN = /^#{2,3}\s+Phase\s+(\d[\d.]*?):\s*(.+)$/gm;
+const PHASE_PATTERN = /^#{2,3}\s+Phase\s+(\d[\d.]*?):\s*(.+)$/m;
 
 /**
  * 分析路线图文件，返回所有阶段信息
@@ -19,8 +19,7 @@ function roadmapAnalyze(cwd) {
   const roadmapPath = path.join(cwd, '.planning', 'ROADMAP.md');
   const content = utils.readFile(roadmapPath);
   if (!content) {
-    utils.error('错误: ROADMAP.md 不存在');
-    process.exit(1);
+    return { phases: [], current_phase: null, total_phases: 0 };
   }
 
   const phases = [];
@@ -306,6 +305,10 @@ function run(cwd, args) {
   switch (sub) {
     case 'analyze': {
       const result = roadmapAnalyze(cwd);
+      if (result.phases.length === 0 && !utils.readFile(path.join(cwd, '.planning', 'ROADMAP.md'))) {
+        utils.error('错误: ROADMAP.md 不存在');
+        process.exit(1);
+      }
       utils.output(result);
       break;
     }
@@ -351,4 +354,4 @@ function run(cwd, args) {
   }
 }
 
-module.exports = { roadmapAnalyze, addPhase, insertPhase, removePhase, run };
+module.exports = { PHASE_PATTERN, roadmapAnalyze, addPhase, insertPhase, removePhase, run };

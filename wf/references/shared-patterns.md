@@ -26,17 +26,7 @@ Wave 是任务分组的执行单元：
 
 ## 完成标记格式
 
-所有 agent 返回统一的 JSON 完成标记。详细合同见 `agent-contracts.md`。
-
-```json
-{
-  "status": "complete|partial|failed",
-  "artifacts": ["<filepath>"],
-  "summary": "<brief description>"
-}
-```
-
-**解析:** 从 agent 输出中提取最后一个 JSON 代码块。无法解析时视为 `"failed"`。
+所有 agent 返回统一的 3 字段 JSON 完成标记（status / artifacts / summary）。规范定义见 [agent-contracts.md](./agent-contracts.md#完成标记格式（Single-Source-of-Truth）)。
 
 ## Context 预算检查
 

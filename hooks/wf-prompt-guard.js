@@ -8,6 +8,9 @@
 const fs = require('fs');
 const path = require('path');
 
+// NOTE: False positives are expected when .planning/ markdown files discuss prompt
+// injection defense or document attack patterns. This is why severity is downgraded
+// to informational for .md files (see REDUCED_SEVERITY_EXTENSIONS below).
 const INJECTION_PATTERNS = [
   // High-confidence patterns (rarely false-positive)
   /ignore\s+(all\s+)?previous\s+instructions/i,

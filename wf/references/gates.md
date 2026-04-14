@@ -45,8 +45,8 @@
 **触发时机:** 任意工具调用后（通过 hook 触发）
 **检查内容:** context window 剩余比例
 **阈值:**
-- WARNING: 剩余 <= 35%
-- CRITICAL: 剩余 <= 25%
+- WARNING: 剩余 <= 30%
+- CRITICAL: 剩余 <= 15%
 **操作:** 注入警告信息，建议保存状态
 
 ### 2. 工作流追踪门禁 (Workflow Tracking Gate)

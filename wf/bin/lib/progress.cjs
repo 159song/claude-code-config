@@ -7,9 +7,7 @@ const path = require('path');
 const fs = require('fs');
 const utils = require('./utils.cjs');
 const phase = require('./phase.cjs');
-
-// 复用 roadmap 的阶段匹配正则（H2/H3 格式）
-const PHASE_PATTERN = /^#{2,3}\s+Phase\s+(\d[\d.]*?):\s*(.+)$/gm;
+const { PHASE_PATTERN } = require('./roadmap.cjs');
 
 /**
  * 计算整体进度

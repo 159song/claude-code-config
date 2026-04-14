@@ -73,10 +73,6 @@ cp "${WF_SOURCE}/agents/wf-"*.md "${CLAUDE_DIR}/agents/"
 
 log_info "复制 Hook 脚本..."
 cp "${WF_SOURCE}/hooks/wf-"*.js "${CLAUDE_DIR}/hooks/"
-if [ -f "${WF_SOURCE}/hooks/wf-session-state.sh" ]; then
-  cp "${WF_SOURCE}/hooks/wf-session-state.sh" "${CLAUDE_DIR}/hooks/"
-  chmod +x "${CLAUDE_DIR}/hooks/wf-session-state.sh"
-fi
 
 log_info "复制工作流定义..."
 cp "${WF_SOURCE}/wf/workflows/"*.md "${CLAUDE_DIR}/wf/workflows/"

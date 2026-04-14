@@ -7,6 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 const utils = require('./utils.cjs');
+const { parseFlag } = require('./utils.cjs');
 
 /**
  * 创建 HANDOFF.json 和 .continue-here.md
@@ -112,21 +113,6 @@ function generateContinueHere(handoff) {
 
 // 允许的 step 值白名单（T-04-08）
 const VALID_STEPS = ['discuss', 'plan', 'execute', 'verify'];
-
-/**
- * 从参数数组中解析 --flag value 对
- * @param {string[]} args - 参数数组
- * @param {string} flag - 标志名（不含 --）
- * @returns {string|null}
- */
-function parseFlag(args, flag) {
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === `--${flag}` && i + 1 < args.length) {
-      return args[i + 1];
-    }
-  }
-  return null;
-}
 
 /**
  * CLI: wf-tools session pause --phase N --plan M --step S --stopped_at "msg"

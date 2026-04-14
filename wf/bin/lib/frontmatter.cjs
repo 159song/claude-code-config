@@ -25,6 +25,10 @@ function parseYamlValue(value) {
   if (value === 'false') return false;
   // null
   if (value === 'null' || value === '~') return null;
+  // JSON array
+  if (value.startsWith('[') && value.endsWith(']')) {
+    try { return JSON.parse(value); } catch {}
+  }
   // 空字符串
   if (value === '') return null;
   // 裸字符串
@@ -38,6 +42,7 @@ function parseYamlValue(value) {
  */
 function formatYamlValue(val) {
   if (val === null || val === undefined) return 'null';
+  if (Array.isArray(val)) return JSON.stringify(val);
   if (typeof val === 'boolean') return String(val);
   if (typeof val === 'number') return String(val);
   if (typeof val === 'string') {

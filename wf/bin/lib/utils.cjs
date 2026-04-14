@@ -118,4 +118,19 @@ function error(message) {
   fs.writeSync(2, message + '\n');
 }
 
-module.exports = { readFile, readJson, writeFile, ensurePlanningDir, findProjectRoot, output, error };
+/**
+ * 从参数数组中解析 --flag value 对
+ * @param {string[]} args - 参数数组
+ * @param {string} flag - 标志名（不含 --）
+ * @returns {string|null} 标志值，未找到时返回 null
+ */
+function parseFlag(args, flag) {
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === `--${flag}` && i + 1 < args.length) {
+      return args[i + 1];
+    }
+  }
+  return null;
+}
+
+module.exports = { readFile, readJson, writeFile, ensurePlanningDir, findProjectRoot, output, error, parseFlag };

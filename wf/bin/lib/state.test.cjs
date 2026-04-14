@@ -7,6 +7,7 @@ const fs = require('fs');
 const os = require('os');
 
 const state = require('./state.cjs');
+const { parseFrontmatter, serializeFrontmatter, parseYamlValue } = require('./frontmatter.cjs');
 
 const SAMPLE_STATE_MD = `---
 gsd_state_version: 1.0
@@ -44,7 +45,7 @@ progress:
 // === Existing tests (preserved) ===
 
 test('parseFrontmatter extracts YAML from STATE.md format', () => {
-  const result = state.parseFrontmatter(SAMPLE_STATE_MD);
+  const result = parseFrontmatter(SAMPLE_STATE_MD);
   assert.ok(result.frontmatter, 'Should have frontmatter object');
   assert.strictEqual(result.frontmatter.gsd_state_version, 1.0);
   assert.strictEqual(result.frontmatter.milestone, 'v1.0');
@@ -54,7 +55,7 @@ test('parseFrontmatter extracts YAML from STATE.md format', () => {
 });
 
 test('parseFrontmatter returns empty frontmatter for content without ---', () => {
-  const result = state.parseFrontmatter('# No frontmatter here\n\nJust body');
+  const result = parseFrontmatter('# No frontmatter here\n\nJust body');
   assert.deepStrictEqual(result.frontmatter, {});
 });
 
@@ -62,14 +63,14 @@ test('state module exports run function', () => {
   assert.strictEqual(typeof state.run, 'function');
 });
 
-test('state module exports parseFrontmatter function', () => {
-  assert.strictEqual(typeof state.parseFrontmatter, 'function');
+test('frontmatter module exports parseFrontmatter function', () => {
+  assert.strictEqual(typeof parseFrontmatter, 'function');
 });
 
 // === Task 1: Nested YAML parsing tests ===
 
 test('parseFrontmatter parses nested progress: with sub-keys', () => {
-  const result = state.parseFrontmatter(NESTED_STATE_MD);
+  const result = parseFrontmatter(NESTED_STATE_MD);
   assert.ok(result.frontmatter.progress, 'progress should not be null');
   assert.strictEqual(typeof result.frontmatter.progress, 'object');
   assert.strictEqual(result.frontmatter.progress.total_phases, 6);
@@ -80,7 +81,7 @@ test('parseFrontmatter parses nested progress: with sub-keys', () => {
 });
 
 test('parseFrontmatter handles mixed flat + nested keys in same frontmatter', () => {
-  const result = state.parseFrontmatter(NESTED_STATE_MD);
+  const result = parseFrontmatter(NESTED_STATE_MD);
   // Flat keys
   assert.strictEqual(result.frontmatter.gsd_state_version, 1.0);
   assert.strictEqual(result.frontmatter.milestone, 'v1.0');
@@ -98,7 +99,7 @@ parent:
 
 body
 `;
-  const result = state.parseFrontmatter(content);
+  const result = parseFrontmatter(content);
   assert.strictEqual(typeof result.frontmatter.parent, 'object');
   assert.notStrictEqual(result.frontmatter.parent, null);
   assert.strictEqual(result.frontmatter.parent.child1, 'hello');
@@ -113,21 +114,21 @@ next_key: value
 
 body
 `;
-  const result = state.parseFrontmatter(content);
+  const result = parseFrontmatter(content);
   assert.strictEqual(result.frontmatter.empty_key, null);
   assert.strictEqual(result.frontmatter.next_key, 'value');
 });
 
 test('parseYamlValue converts integers, floats, booleans, null, quoted strings, bare strings', () => {
-  assert.strictEqual(state.parseYamlValue('42'), 42);
-  assert.strictEqual(state.parseYamlValue('3.14'), 3.14);
-  assert.strictEqual(state.parseYamlValue('true'), true);
-  assert.strictEqual(state.parseYamlValue('false'), false);
-  assert.strictEqual(state.parseYamlValue('null'), null);
-  assert.strictEqual(state.parseYamlValue('~'), null);
-  assert.strictEqual(state.parseYamlValue('"hello world"'), 'hello world');
-  assert.strictEqual(state.parseYamlValue("'single quoted'"), 'single quoted');
-  assert.strictEqual(state.parseYamlValue('bare string'), 'bare string');
+  assert.strictEqual(parseYamlValue('42'), 42);
+  assert.strictEqual(parseYamlValue('3.14'), 3.14);
+  assert.strictEqual(parseYamlValue('true'), true);
+  assert.strictEqual(parseYamlValue('false'), false);
+  assert.strictEqual(parseYamlValue('null'), null);
+  assert.strictEqual(parseYamlValue('~'), null);
+  assert.strictEqual(parseYamlValue('"hello world"'), 'hello world');
+  assert.strictEqual(parseYamlValue("'single quoted'"), 'single quoted');
+  assert.strictEqual(parseYamlValue('bare string'), 'bare string');
 });
 
 test('serializeFrontmatter round-trips flat frontmatter without data loss', () => {
@@ -140,32 +141,32 @@ active: true
 
 body
 `;
-  const { frontmatter, body } = state.parseFrontmatter(original);
-  const serialized = state.serializeFrontmatter(frontmatter);
+  const { frontmatter, body } = parseFrontmatter(original);
+  const serialized = serializeFrontmatter(frontmatter);
   const rebuilt = `---\n${serialized}\n---\n${body}`;
-  const reparsed = state.parseFrontmatter(rebuilt);
+  const reparsed = parseFrontmatter(rebuilt);
   assert.deepStrictEqual(reparsed.frontmatter, frontmatter);
 });
 
 test('serializeFrontmatter round-trips nested frontmatter without data loss', () => {
-  const { frontmatter, body } = state.parseFrontmatter(NESTED_STATE_MD);
-  const serialized = state.serializeFrontmatter(frontmatter);
+  const { frontmatter, body } = parseFrontmatter(NESTED_STATE_MD);
+  const serialized = serializeFrontmatter(frontmatter);
   const rebuilt = `---\n${serialized}\n---\n${body}`;
-  const reparsed = state.parseFrontmatter(rebuilt);
+  const reparsed = parseFrontmatter(rebuilt);
   assert.deepStrictEqual(reparsed.frontmatter.progress, frontmatter.progress);
   assert.strictEqual(reparsed.frontmatter.status, frontmatter.status);
 });
 
 test('serializeFrontmatter quotes strings containing special YAML chars', () => {
   const fm = { key: 'value: with colon', another: 'hash # here' };
-  const serialized = state.serializeFrontmatter(fm);
+  const serialized = serializeFrontmatter(fm);
   assert.ok(serialized.includes('"value: with colon"'), 'Should quote string with colon');
   assert.ok(serialized.includes('"hash # here"'), 'Should quote string with hash');
 });
 
 test('serializeFrontmatter quotes strings matching ISO date pattern', () => {
   const fm = { last_updated: '2026-04-10T06:10:33.564Z' };
-  const serialized = state.serializeFrontmatter(fm);
+  const serialized = serializeFrontmatter(fm);
   assert.ok(serialized.includes('"2026-04-10T06:10:33.564Z"'), 'Should quote ISO date string');
 });
 
@@ -226,7 +227,7 @@ test('stateSet with dotted key progress.completed_phases updates only that sub-k
   state.stateSet(tmpDir, 'progress.completed_phases', '2');
 
   const content = fs.readFileSync(path.join(planningDir, 'STATE.md'), 'utf8');
-  const { frontmatter } = state.parseFrontmatter(content);
+  const { frontmatter } = parseFrontmatter(content);
   assert.strictEqual(frontmatter.progress.completed_phases, 2);
   // Other sub-keys preserved
   assert.strictEqual(frontmatter.progress.total_phases, 6);
@@ -242,7 +243,7 @@ test('stateSet with dotted key on non-existent parent creates the parent object'
   state.stateSet(tmpDir, 'metrics.total_time', '120');
 
   const content = fs.readFileSync(path.join(planningDir, 'STATE.md'), 'utf8');
-  const { frontmatter } = state.parseFrontmatter(content);
+  const { frontmatter } = parseFrontmatter(content);
   assert.strictEqual(typeof frontmatter.metrics, 'object');
   assert.strictEqual(frontmatter.metrics.total_time, 120);
 });
@@ -286,7 +287,7 @@ test('statePatch with --status and --last_activity updates both keys', () => {
     assert.deepStrictEqual(result.updated, ['status', 'last_activity']);
 
     const content = fs.readFileSync(statePath, 'utf8');
-    const { frontmatter } = state.parseFrontmatter(content);
+    const { frontmatter } = parseFrontmatter(content);
     assert.strictEqual(frontmatter.status, 'executing');
     assert.strictEqual(frontmatter.last_activity, '2026-04-10');
   } finally {
@@ -329,7 +330,7 @@ test('statePatch preserves unmodified keys (progress sub-object intact after pat
     });
 
     const content = fs.readFileSync(statePath, 'utf8');
-    const { frontmatter } = state.parseFrontmatter(content);
+    const { frontmatter } = parseFrontmatter(content);
     assert.strictEqual(frontmatter.status, 'executing');
     // progress sub-object should be preserved
     assert.strictEqual(frontmatter.progress.total_phases, 6);
@@ -352,7 +353,7 @@ test('stateMerge with progress update deep-merges correctly', () => {
     assert.deepStrictEqual(result.merged, ['progress']);
 
     const content = fs.readFileSync(statePath, 'utf8');
-    const { frontmatter } = state.parseFrontmatter(content);
+    const { frontmatter } = parseFrontmatter(content);
     assert.strictEqual(frontmatter.progress.completed_phases, 2);
     // Other progress sub-keys preserved
     assert.strictEqual(frontmatter.progress.total_phases, 6);
@@ -396,7 +397,7 @@ test('stateMerge with new top-level key adds it to frontmatter', () => {
     });
 
     const content = fs.readFileSync(statePath, 'utf8');
-    const { frontmatter } = state.parseFrontmatter(content);
+    const { frontmatter } = parseFrontmatter(content);
     assert.strictEqual(frontmatter.new_key, 'new_value');
     // Existing keys preserved
     assert.strictEqual(frontmatter.status, 'planning');
@@ -560,7 +561,7 @@ test('stateBeginPhase with --phase 2 sets status to executing', () => {
       state.stateBeginPhase(tmpDir, ['--phase', '2']);
     });
     const content = fs.readFileSync(statePath, 'utf8');
-    const { frontmatter } = state.parseFrontmatter(content);
+    const { frontmatter } = parseFrontmatter(content);
     assert.strictEqual(frontmatter.status, 'executing');
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -574,7 +575,7 @@ test('stateBeginPhase with --phase 2 sets stopped_at to Phase 2 started', () => 
       state.stateBeginPhase(tmpDir, ['--phase', '2']);
     });
     const content = fs.readFileSync(statePath, 'utf8');
-    const { frontmatter } = state.parseFrontmatter(content);
+    const { frontmatter } = parseFrontmatter(content);
     assert.strictEqual(frontmatter.stopped_at, 'Phase 2 started');
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -588,7 +589,7 @@ test('stateBeginPhase with --phase 2 sets last_updated to ISO timestamp', () => 
       state.stateBeginPhase(tmpDir, ['--phase', '2']);
     });
     const content = fs.readFileSync(statePath, 'utf8');
-    const { frontmatter } = state.parseFrontmatter(content);
+    const { frontmatter } = parseFrontmatter(content);
     // last_updated should be an ISO string (serializeFrontmatter quotes it)
     assert.ok(typeof frontmatter.last_updated === 'string', 'last_updated should be a string');
     assert.ok(/^\d{4}-\d{2}-\d{2}T/.test(frontmatter.last_updated), 'last_updated should be ISO format');
@@ -604,7 +605,7 @@ test('stateBeginPhase with --phase 2 sets last_activity to YYYY-MM-DD', () => {
       state.stateBeginPhase(tmpDir, ['--phase', '2']);
     });
     const content = fs.readFileSync(statePath, 'utf8');
-    const { frontmatter } = state.parseFrontmatter(content);
+    const { frontmatter } = parseFrontmatter(content);
     assert.ok(/^\d{4}-\d{2}-\d{2}$/.test(frontmatter.last_activity), 'last_activity should be YYYY-MM-DD');
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -618,7 +619,7 @@ test('stateBeginPhase preserves all other frontmatter keys', () => {
       state.stateBeginPhase(tmpDir, ['--phase', '2']);
     });
     const content = fs.readFileSync(statePath, 'utf8');
-    const { frontmatter } = state.parseFrontmatter(content);
+    const { frontmatter } = parseFrontmatter(content);
     assert.strictEqual(frontmatter.milestone, 'v1.0');
     assert.strictEqual(frontmatter.progress.total_phases, 6);
     assert.strictEqual(frontmatter.progress.completed_phases, 1);
@@ -690,7 +691,7 @@ test('stateAdvancePlan with --phase 2 --plan 1 increments completed_plans', () =
       state.stateAdvancePlan(tmpDir, ['--phase', '2', '--plan', '1']);
     });
     const content = fs.readFileSync(statePath, 'utf8');
-    const { frontmatter } = state.parseFrontmatter(content);
+    const { frontmatter } = parseFrontmatter(content);
     assert.strictEqual(frontmatter.progress.completed_plans, 2);
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -704,7 +705,7 @@ test('stateAdvancePlan recalculates percent as round((completed/total)*100)', ()
       state.stateAdvancePlan(tmpDir, ['--phase', '2', '--plan', '1']);
     });
     const content = fs.readFileSync(statePath, 'utf8');
-    const { frontmatter } = state.parseFrontmatter(content);
+    const { frontmatter } = parseFrontmatter(content);
     // completed_plans was 1, now 2. total_plans is 3. 2/3*100 = 67
     assert.strictEqual(frontmatter.progress.percent, 67);
   } finally {
@@ -719,7 +720,7 @@ test('stateAdvancePlan sets last_updated and last_activity timestamps', () => {
       state.stateAdvancePlan(tmpDir, ['--phase', '2', '--plan', '1']);
     });
     const content = fs.readFileSync(statePath, 'utf8');
-    const { frontmatter } = state.parseFrontmatter(content);
+    const { frontmatter } = parseFrontmatter(content);
     assert.ok(/^\d{4}-\d{2}-\d{2}T/.test(frontmatter.last_updated), 'last_updated should be ISO format');
     assert.ok(/^\d{4}-\d{2}-\d{2}$/.test(frontmatter.last_activity), 'last_activity should be YYYY-MM-DD');
   } finally {
@@ -734,7 +735,7 @@ test('stateAdvancePlan preserves progress.total_phases and progress.completed_ph
       state.stateAdvancePlan(tmpDir, ['--phase', '2', '--plan', '1']);
     });
     const content = fs.readFileSync(statePath, 'utf8');
-    const { frontmatter } = state.parseFrontmatter(content);
+    const { frontmatter } = parseFrontmatter(content);
     assert.strictEqual(frontmatter.progress.total_phases, 6);
     assert.strictEqual(frontmatter.progress.completed_phases, 1);
   } finally {
@@ -780,7 +781,7 @@ test('run dispatches begin-phase subcommand correctly', () => {
     assert.strictEqual(result.success, true);
     assert.strictEqual(result.phase, 3);
     const content = fs.readFileSync(statePath, 'utf8');
-    const { frontmatter } = state.parseFrontmatter(content);
+    const { frontmatter } = parseFrontmatter(content);
     assert.strictEqual(frontmatter.status, 'executing');
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -797,7 +798,7 @@ test('run dispatches advance-plan subcommand correctly', () => {
     assert.strictEqual(result.phase, 2);
     assert.strictEqual(result.plan, 2);
     const content = fs.readFileSync(statePath, 'utf8');
-    const { frontmatter } = state.parseFrontmatter(content);
+    const { frontmatter } = parseFrontmatter(content);
     assert.strictEqual(frontmatter.progress.completed_plans, 2);
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
