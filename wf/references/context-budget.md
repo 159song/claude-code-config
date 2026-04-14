@@ -18,7 +18,7 @@ Context window 是有限资源。每次读取文件、执行命令、调用 agen
 | 85% | 15% | CRITICAL | Hook 注入严重警告，确认检查点已就绪 |
 | > 85% | < 15% | CRITICAL | auto-compact 即将触发，检查点确保恢复 |
 
-**防抖机制:** 同级别警告每 5 次工具调用最多触发一次，避免警告刷屏。级别升级（WARNING -> CRITICAL）立即触发，不受防抖限制。
+**防抖机制:** 同级别警告至少间隔 60 秒触发一次，避免高频工具调用时警告刷屏。级别升级（WARNING -> CRITICAL）立即触发，不受防抖限制。
 
 **与 auto-compact 的协作:**
 - CLAUDE.md 中的 compact instructions 指示 auto-compact 保留 CONTINUATION.md 内容

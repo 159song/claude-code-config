@@ -44,8 +44,21 @@ CONTINUATION=$(cat .planning/CONTINUATION.md 2>/dev/null)
 如果存在 CONTINUATION.md：
 
 1. 解析其 frontmatter 中的 `phase`、`step`、`flags`、`remaining_phases`
-2. 用 CONTINUATION 的值覆盖 flags 解析结果（恢复到上次检查点位置）
-3. 显示恢复横幅：
+2. **验证检查点完整性:** 确认 `phase` 和 `step` 字段存在且有效。如果解析失败或字段缺失：
+   - 显示: `"⚠ CONTINUATION.md 检查点损坏，回退到 HANDOFF 恢复"`
+   - 写入 HANDOFF.json 作为备用恢复点：
+     ```json
+     {
+       "phase": <从 STATE.md 读取 current_phase>,
+       "step": "begin",
+       "stopped_at": "CONTINUATION.md parse failure",
+       "resume_command": "/wf-autonomous --from <current_phase>"
+     }
+     ```
+   - 删除损坏的 CONTINUATION.md
+   - 从 STATE.md 的 current_phase 重新开始（等同于无检查点的正常启动流程）
+3. 用 CONTINUATION 的值覆盖 flags 解析结果（恢复到上次检查点位置）
+4. 显示恢复横幅：
 
 ```
 ╔══════════════════════════════════════════╗

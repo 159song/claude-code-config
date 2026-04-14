@@ -8,8 +8,9 @@
 // 3. 当剩余 context 低于阈值时，注入警告信息
 //
 // 阈值:
-//   WARNING  (剩余 <= 35%): 建议收尾当前任务
-//   CRITICAL (剩余 <= 25%): 建议立即保存状态
+//   WARNING  (剩余 <= 30%): 建议确保 CONTINUATION.md 检查点已写入
+//   CRITICAL (剩余 <= 15%): auto-compact 即将触发，确认检查点已就绪
+// 防抖: 同级别警告间隔 >= 60 秒，级别升级立即触发
 
 const fs = require('fs');
 const os = require('os');
@@ -18,10 +19,10 @@ const path = require('path');
 const WARNING_THRESHOLD = 30;   // 30% remaining = 70% used
 const CRITICAL_THRESHOLD = 15;  // 15% remaining = 85% used
 const STALE_SECONDS = 60;
-const DEBOUNCE_CALLS = 5;
+const DEBOUNCE_SECONDS = 60;    // same-level warnings at most once per 60 seconds
 
 let input = '';
-const stdinTimeout = setTimeout(() => process.exit(0), 10000);
+const stdinTimeout = setTimeout(() => process.exit(0), 15000);
 process.stdin.setEncoding('utf8');
 process.stdin.on('data', chunk => input += chunk);
 process.stdin.on('end', () => {
@@ -58,30 +59,27 @@ process.stdin.on('end', () => {
 
     if (remaining > WARNING_THRESHOLD) process.exit(0);
 
-    // 防抖
+    // 时间防抖: 同级别警告至少间隔 DEBOUNCE_SECONDS 秒
     const warnPath = path.join(tmpDir, `claude-ctx-${sessionId}-warned.json`);
-    let warnData = { callsSinceWarn: 0, lastLevel: null };
-    let firstWarn = true;
+    let warnData = { lastWarnTime: 0, lastLevel: null };
 
     if (fs.existsSync(warnPath)) {
       try {
         warnData = JSON.parse(fs.readFileSync(warnPath, 'utf8'));
-        firstWarn = false;
       } catch (e) {}
     }
 
-    warnData.callsSinceWarn = (warnData.callsSinceWarn || 0) + 1;
-
+    const nowMs = Date.now();
     const isCritical = remaining <= CRITICAL_THRESHOLD;
     const currentLevel = isCritical ? 'critical' : 'warning';
     const severityEscalated = currentLevel === 'critical' && warnData.lastLevel === 'warning';
+    const elapsed = (nowMs - (warnData.lastWarnTime || 0)) / 1000;
 
-    if (!firstWarn && warnData.callsSinceWarn < DEBOUNCE_CALLS && !severityEscalated) {
-      fs.writeFileSync(warnPath, JSON.stringify(warnData));
+    if (warnData.lastWarnTime && elapsed < DEBOUNCE_SECONDS && !severityEscalated) {
       process.exit(0);
     }
 
-    warnData.callsSinceWarn = 0;
+    warnData.lastWarnTime = nowMs;
     warnData.lastLevel = currentLevel;
     fs.writeFileSync(warnPath, JSON.stringify(warnData));
 

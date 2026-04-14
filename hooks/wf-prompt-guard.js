@@ -32,7 +32,7 @@ const INJECTION_PATTERNS = [
 const REDUCED_SEVERITY_EXTENSIONS = ['.md', '.txt', '.log'];
 
 let input = '';
-const stdinTimeout = setTimeout(() => process.exit(0), 3000);
+const stdinTimeout = setTimeout(() => process.exit(0), 15000);
 process.stdin.setEncoding('utf8');
 process.stdin.on('data', chunk => input += chunk);
 process.stdin.on('end', () => {
