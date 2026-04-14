@@ -102,7 +102,7 @@ tools:
 1. Read 文件内容
 2. 根据 depth 选择审查维度和深度
 3. 识别问题，为每个问题分配：
-   - **Finding ID**: `CR-{NN}` 格式（从 01 开始递增）
+   - **Finding ID**: `CR-P{phase}-{NN}` 格式（如 `CR-P3-01`，从 01 开始递增，phase 来自输入合同）
    - **Severity**: `critical` / `high` / `medium` / `low`
    - **File**: 源文件路径
    - **Line range**: 起止行号（如 `L42-L58`）
@@ -166,14 +166,14 @@ iteration: 1
 
 ## Findings
 
-### CR-01 [critical] 命令注入风险
+### CR-P6-01 [critical] 命令注入风险
 - **文件:** wf/bin/lib/example.cjs
 - **行号:** L42-L58
 - **维度:** security
 - **描述:** 使用 shell 字符串拼接用户输入，可能导致命令注入
 - **建议修复:** 使用 execFile() 替代，参数通过数组传递
 
-### CR-02 [high] 未处理的空值
+### CR-P6-02 [high] 未处理的空值
 - **文件:** wf/bin/lib/example.cjs
 - **行号:** L15
 - **维度:** bugs

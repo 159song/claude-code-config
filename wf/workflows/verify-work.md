@@ -51,6 +51,20 @@ kill %1 2>/dev/null
 
 > **Agent 调用:** 如需调用 `wf-verifier` agent，按合同格式构造 prompt（见 `wf/references/agent-contracts.md`），
 > 使用 `model: config.agents.models.verifier || "sonnet"`，解析返回的 JSON 完成标记。
+
+### Smoke-only 模式最低标准
+
+当 `--smoke` 由 autonomous 模式调用时，跳过对话式 UAT 循环，但必须通过以下验证级别：
+
+| 验证级别 | Smoke 模式 | 完整 UAT |
+|----------|-----------|----------|
+| **EXISTS** — 产出文件存在 | 必须通过 | 必须通过 |
+| **SUBSTANTIVE** — 内容非空、无 TODO 占位符 | 必须通过 | 必须通过 |
+| **WIRED** — 组件已集成（import/路由/引用） | 必须通过 | 必须通过 |
+| **DATA-FLOWING** — 端到端数据通路 | 仅自动化可验证部分（build/test/curl） | 完整验证含用户交互 |
+
+**Smoke 模式 PASS 条件:** EXISTS + SUBSTANTIVE + WIRED 全部通过，且 build/test 无 FAIL。
+**Smoke 模式 FAIL 条件:** 任何前三级未通过，或 build/test 失败。触发 gap closure。
 </step>
 
 <step name="code_review" condition="config.workflow.code_review === true">
