@@ -37,7 +37,7 @@ function readJson(filePath) {
 }
 
 /**
- * 写入文件，自动创建父目录
+ * 写入文件，自动创建父目录，使用 .tmp + rename 原子写入
  * @param {string} filePath - 目标文件路径
  * @param {string} content - 文件内容
  */
@@ -46,7 +46,9 @@ function writeFile(filePath, content) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
-  fs.writeFileSync(filePath, content, 'utf8');
+  const tmpPath = filePath + '.tmp';
+  fs.writeFileSync(tmpPath, content, 'utf8');
+  fs.renameSync(tmpPath, filePath);
 }
 
 /**

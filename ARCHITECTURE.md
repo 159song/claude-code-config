@@ -226,6 +226,14 @@
                                             │
                                             ▼
                                    /wf-verify-work (最终验收)
+                                            │
+                               ┌────────────┴────────────┐
+                               │                         │
+                     auto_archive=true          auto_archive=false
+                               │                         │
+                               ▼                         ▼
+                     /wf-complete-milestone      建议手动归档
+                     (自动链式调用)              /wf-complete-milestone
 
 
 ═══════════════════════════════════════════════════════════════════════════════════
@@ -534,9 +542,16 @@ B3: 执行阶段  /wf-execute-phase N [--wave N|--interactive|--chain]
                                    ▼
                           ┌──────────────────┐
                           │ 5. 链接新里程碑   │
-                          │ 继续 → Skill()   │──▶ /wf-new-milestone
-                          │ 跳过 → 手动执行  │
-                          └──────────────────┘
+                          └──────┬───────────┘
+                                 │
+                    ┌────────────┴────────────┐
+                    │                         │
+          auto_new_milestone=true   auto_new_milestone=false
+                    │                         │
+                    ▼                         ▼
+          直接 Skill()             询问用户: 继续/跳过
+          /wf-new-milestone        继续 → Skill() /wf-new-milestone
+                                   跳过 → 手动执行
 
   产出: .planning/milestones/<version>/（归档）、Git tag、STATE.md 重置
 
@@ -628,7 +643,7 @@ B3: 执行阶段  /wf-execute-phase N [--wave N|--interactive|--chain]
   │ 修改 → 确认 │ ───────▶ 直到 "done"
   └─────────────┘
 
-  配置类别: 基本设置 │ 工作流行为 │ 并行化 │ 门禁 │ 安全 │ Hook │ Agent 模型 │ 规划
+  配置类别: 基本设置 │ 工作流行为 │ 并行化 │ 里程碑 │ 门禁 │ 安全 │ Hook │ Agent 模型 │ 规划
   写入目标: .planning/config.json（不修改 wf/templates/config.json）
 
 

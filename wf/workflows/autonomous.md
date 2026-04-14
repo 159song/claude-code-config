@@ -41,7 +41,7 @@ ROADMAP_JSON=$(node "$HOME/.claude/wf/bin/wf-tools.cjs" roadmap analyze)
 CONTINUATION=$(cat .planning/CONTINUATION.md 2>/dev/null)
 ```
 
-如果存在 CONTINUATION.md：
+如果存在 CONTINUATION.md（**优先级高于 HANDOFF.json**，因为 CONTINUATION 包含更精确的自主模式检查点）：
 
 1. 解析其 frontmatter 中的 `phase`、`step`、`flags`、`remaining_phases`
 2. **验证检查点完整性:** 确认 `phase` 和 `step` 字段存在且有效。如果解析失败或字段缺失：
@@ -87,6 +87,27 @@ CONTINUATION=$(cat .planning/CONTINUATION.md 2>/dev/null)
   ⬜ Phase {N+1}: {name}
   ...
 ```
+
+### 1.2 Phase Dependency Validation
+
+当使用 `--from N`（N > 1）时，验证前置阶段的完成状态：
+
+1. 从 `ROADMAP_JSON` 提取阶段 N 的 `dependencies` 字段（如有）
+2. 对于阶段 1 到 N-1 中的每个阶段，检查对应的 `.planning/phases/{padded}-*/VERIFICATION.md` 是否存在
+3. 如果有依赖阶段未通过验证（VERIFICATION.md 不存在或包含 FAIL）：
+   - 显示警告：
+     ```
+     ⚠ 前置阶段未完成:
+       Phase {X}: 缺少验证结果
+       Phase {Y}: 验证状态 FAIL
+     
+     这些阶段的产出可能是 Phase {N} 的前置依赖。
+     继续执行可能导致不完整或错误的结果。
+     ```
+   - 询问用户确认: `"是否仍要从 Phase {N} 开始? [y/N]"`
+   - 用户拒绝 → 退出并建议: `"运行 /wf-autonomous 从第一个未完成阶段开始"`
+
+> **设计理念:** 不阻塞高级用户的手动跳转，但确保他们了解风险。通过 ROADMAP 依赖检查 + VERIFICATION.md 存在性检查双重验证。
 
 ---
 
@@ -258,8 +279,48 @@ rm -f .planning/CONTINUATION.md
 
   总任务: {total_tasks}
   总验证: {total_verifications} PASS
+```
 
+### 3.1 Auto-Archive Milestone Check
+
+读取 `.planning/config.json` 的 `milestone.auto_archive_on_complete` 配置：
+
+```bash
+CONFIG_JSON=$(cat .planning/config.json 2>/dev/null)
+```
+
+从 `CONFIG_JSON` 解析 `milestone.auto_archive_on_complete` 字段。
+
+**如果 `auto_archive_on_complete === true`：**
+
+从 STATE.md 读取当前里程碑版本号：
+
+```bash
+STATE_JSON=$(node "$HOME/.claude/wf/bin/wf-tools.cjs" state json)
+```
+
+从 `STATE_JSON` 提取 `milestone` 字段（例如 `v1.0`）。
+
+显示自动归档横幅：
+
+```
+▶ milestone.auto_archive_on_complete 已启用
+▶ 自动执行里程碑归档: {{milestone_version}}
+```
+
+通过 Skill() 链接到 complete-milestone 工作流：
+
+```
+Skill(complete-milestone, { version: {{milestone_version}} })
+```
+
+**如果 `auto_archive_on_complete === false` 或字段不存在：**
+
+显示手动操作建议：
+
+```
 ▶ 建议: /wf-verify-work 进行最终验收
+        /wf-complete-milestone 归档里程碑
 ```
 
 ---

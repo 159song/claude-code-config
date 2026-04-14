@@ -178,6 +178,23 @@ function main() {
   };
   process.stdout.write(humanReadable + '\n' + JSON.stringify(hookOutput));
 
+  // Cleanup stale /tmp bridge files from previous sessions (older than 24h)
+  try {
+    const tmpDir = os.tmpdir();
+    const now = Date.now();
+    const maxAge = 24 * 60 * 60 * 1000;
+    const prefixes = ['wf-session-', 'claude-ctx-'];
+    const entries = fs.readdirSync(tmpDir);
+    for (const entry of entries) {
+      if (!prefixes.some(p => entry.startsWith(p))) continue;
+      const fp = path.join(tmpDir, entry);
+      try {
+        const stat = fs.statSync(fp);
+        if (now - stat.mtimeMs > maxAge) fs.unlinkSync(fp);
+      } catch {}
+    }
+  } catch {}
+
   // D-15: Write bridge file to /tmp/ for other hooks
   const bridgePath = path.join(os.tmpdir(), `wf-session-${sessionId}.json`);
   try {

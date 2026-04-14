@@ -47,7 +47,9 @@ process.stdin.on('end', () => {
     if (toolName !== 'Write' && toolName !== 'Edit') process.exit(0);
 
     const filePath = data.tool_input?.file_path || '';
-    if (!filePath.includes('.planning/') && !filePath.includes('.planning\\')) process.exit(0);
+    const resolvedPath = path.resolve(filePath);
+    if (!resolvedPath.includes(path.sep + '.planning' + path.sep) &&
+        !resolvedPath.endsWith(path.sep + '.planning')) process.exit(0);
 
     const content = data.tool_input?.content || data.tool_input?.new_string || '';
     if (!content) process.exit(0);

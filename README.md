@@ -396,12 +396,25 @@ Agent 协作方式：
     "confirm_plan": false,
     "confirm_transition": false
   },
+  "milestone": {
+    "auto_archive_on_complete": false,
+    "auto_new_milestone": false
+  },
   "parallelization": {
     "enabled": true
   },
   "security_enforcement": false
 }
 ```
+
+#### 里程碑自动化
+
+| 配置项 | 默认 | 说明 |
+|--------|------|------|
+| `milestone.auto_archive_on_complete` | `false` | autonomous 模式完成所有阶段后，自动执行 `/wf-complete-milestone` |
+| `milestone.auto_new_milestone` | `false` | 里程碑归档完成后，跳过确认直接启动 `/wf-new-milestone` |
+
+两者均开启时，实现全自动链路：执行完所有阶段 → 归档里程碑 → 创建新里程碑。
 
 通过命令管理：
 

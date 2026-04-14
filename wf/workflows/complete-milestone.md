@@ -157,6 +157,9 @@ RESET_RESULT=$(node "$HOME/.claude/wf/bin/wf-tools.cjs" milestone reset)
 
 **更新 STATE.md：**
 
+> **阶段编号重置（per D-08）:** 新里程碑的阶段编号从 1 开始，与前一个里程碑的阶段编号无关。
+> `milestone reset` CLI 命令会清空 phases/ 目录，后续 new-milestone 生成的 ROADMAP.md 从 Phase 1 开始编号。
+
 ```bash
 node "$HOME/.claude/wf/bin/wf-tools.cjs" state set \
   --milestone "{{next_version}}" \
@@ -193,7 +196,34 @@ node "$HOME/.claude/wf/bin/wf-tools.cjs" state set \
   归档位置: .planning/milestones/{{version}}/
 ```
 
-提供自动链接选项（per D-09: 归档完成后自动启动 new-milestone 流程）：
+读取 `.planning/config.json` 的 `milestone.auto_new_milestone` 配置：
+
+```bash
+CONFIG_JSON=$(cat .planning/config.json 2>/dev/null)
+```
+
+从 `CONFIG_JSON` 解析 `milestone.auto_new_milestone` 字段。
+
+**如果 `auto_new_milestone === true`：**
+
+跳过用户确认，直接启动新里程碑流程：
+
+```
+▶ milestone.auto_new_milestone 已启用
+▶ 自动启动新里程碑流程...
+```
+
+通过 Skill() 链接到 new-milestone 工作流：
+
+```
+Skill(new-milestone)
+```
+
+按照 `wf/workflows/new-milestone.md` 端到端执行新里程碑初始化。
+
+**如果 `auto_new_milestone === false` 或字段不存在：**
+
+提供手动链接选项（per D-09: 归档完成后可启动 new-milestone 流程）：
 
 询问用户：
 

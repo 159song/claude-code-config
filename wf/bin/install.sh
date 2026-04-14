@@ -109,16 +109,26 @@ check_prerequisites() {
     fi
   fi
 
-  # 检查源文件完整性
-  if [[ ! -f "${WF_SOURCE}/wf/bin/wf-tools.cjs" ]]; then
-    log_error "源文件不完整: 缺少 wf/bin/wf-tools.cjs"
-    errors=$((errors + 1))
-  fi
-
-  if [[ ! -f "${WF_SOURCE}/settings.json" ]]; then
-    log_error "源文件不完整: 缺少 settings.json"
-    errors=$((errors + 1))
-  fi
+  # 检查源文件完整性（核心文件 + hooks + lib 模块）
+  local critical_files=(
+    "wf/bin/wf-tools.cjs"
+    "settings.json"
+    "hooks/wf-session-state.js"
+    "hooks/wf-context-monitor.js"
+    "hooks/wf-prompt-guard.js"
+    "hooks/wf-statusline.js"
+    "wf/bin/lib/utils.cjs"
+    "wf/bin/lib/state.cjs"
+    "wf/bin/lib/config.cjs"
+    "wf/bin/lib/frontmatter.cjs"
+    "wf/bin/lib/merge-settings.cjs"
+  )
+  for f in "${critical_files[@]}"; do
+    if [[ ! -f "${WF_SOURCE}/${f}" ]]; then
+      log_error "源文件不完整: 缺少 ${f}"
+      errors=$((errors + 1))
+    fi
+  done
 
   if [[ "$errors" -gt 0 ]]; then
     exit 1
@@ -452,14 +462,20 @@ merge_settings() {
     return 0
   fi
 
-  local merged
-  merged=$(node "$merge_tool" "$src" "$dst" 2>/dev/null)
+  local merged merge_err
+  merge_err=$(mktemp)
+  merged=$(node "$merge_tool" "$src" "$dst" 2>"$merge_err")
 
   if [[ -z "$merged" ]]; then
     log_warn "settings.json 合并失败, 保留现有配置"
+    if [[ -s "$merge_err" ]]; then
+      log_warn "错误详情: $(cat "$merge_err")"
+    fi
     log_warn "请手动合并: $src"
+    rm -f "$merge_err"
     return 0
   fi
+  rm -f "$merge_err"
 
   # 验证输出是合法 JSON
   if ! echo "$merged" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{JSON.parse(d)})" 2>/dev/null; then

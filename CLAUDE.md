@@ -13,6 +13,7 @@ WF 是一套 Claude Code 个人配置/插件系统，提供结构化项目管理
 - **架构**: 保持现有分层架构，不引入破坏性重构
 - **命名**: 保持 `wf-` 前缀命名约定
 - **语言**: hooks/CLI 保持 JavaScript/Node.js，文档保持中文
+- **文档同步**: 当 WF 工作流、命令、Agent、Hook 或配置发生变更时，同步更新 `ARCHITECTURE.md` 和 `README.md` 中的相关章节
 <!-- GSD:project-end -->
 
 <!-- GSD:stack-start source:codebase/STACK.md -->

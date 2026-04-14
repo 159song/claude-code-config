@@ -25,6 +25,10 @@
     "max_concurrent_agents": 3,
     "min_plans_for_parallel": 2
   },
+  "milestone": {
+    "auto_archive_on_complete": false,
+    "auto_new_milestone": false
+  },
   "gates": {
     "confirm_project": true,
     "confirm_phases": true,

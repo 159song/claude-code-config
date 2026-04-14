@@ -35,6 +35,26 @@ orchestrator 保持轻量：发现计划 → 分析依赖 → 分波 → 派发 
 按 wave 排序，生成执行顺序。
 </step>
 
+<step name="file_conflict_precheck">
+## 1.5 文件冲突预检
+
+在启动并行执行前，检查同一 wave 内的计划是否有文件冲突：
+
+1. 对每个 wave，提取所有计划的 `files_modified` 列表
+2. 计算 wave 内每对计划之间的文件交集
+3. 如果存在交集（两个计划修改同一文件）：
+   - 将冲突的计划从并行降级为串行执行
+   - 显示警告：
+     ```
+     ⚠ Wave {W} 检测到文件冲突:
+       PLAN-{A} 和 PLAN-{B} 都修改: {conflicting_files}
+       → 降级为串行执行以避免合并冲突
+     ```
+4. 无冲突的计划保持并行
+
+> **设计理念:** 预防优于事后处理。在 agent 消耗 context 之前发现冲突，避免 worktree 合并失败导致的工作浪费。
+</step>
+
 <step name="wave_execution">
 ## 2. 波次执行
 

@@ -104,7 +104,15 @@ function deepMerge(base, override) {
 function loadConfig(cwd) {
   const projectRoot = cwd || process.cwd();
   const configPath = path.join(projectRoot, '.planning', 'config.json');
-  const projectConfig = utils.readJson(configPath) || {};
+  const raw = utils.readFile(configPath);
+  let projectConfig = {};
+  if (raw) {
+    try {
+      projectConfig = JSON.parse(raw);
+    } catch {
+      utils.error(`[wf-config] config.json 解析失败，使用默认配置: ${configPath}`);
+    }
+  }
   return deepMerge(CONFIG_DEFAULTS, projectConfig);
 }
 
