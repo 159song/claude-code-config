@@ -39,6 +39,12 @@
   "hooks": {
     "context_warnings": true
   },
+  "telemetry": {
+    "enabled": false,
+    "track_duration": true,
+    "track_commits": true,
+    "track_files_changed": true
+  },
   "agents": {
     "models": {
       "executor": "sonnet",

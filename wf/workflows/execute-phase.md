@@ -83,6 +83,30 @@ Agent({
 })
 ```
 
+### 渐进式结果收集
+
+当 wave 内有多个并行 agent 时，采用逐个收集策略（而非等待全部完成再统一处理）：
+
+1. **即时处理:** 每个 agent 返回后立即：
+   - 解析完成标记（JSON）
+   - 读取 worktree 中的 SUMMARY.md（在合并前）
+   - 更新进度显示
+
+2. **快速失败:** 如果某个 agent 返回 `"failed"`：
+   - 立即启动重试（不等待同 wave 其他 agent 完成）
+   - 重试与剩余 agent 并行进行，减少总等待时间
+
+3. **进度反馈:** 每个 agent 完成后刷新进度：
+```
+Wave 2: ██░░ 1/4 完成
+  ✅ PLAN-02-01: 用户模型 (32s)
+  ⏳ PLAN-02-02: 认证端点...
+  ⏳ PLAN-02-03: 权限系统...
+  ⏳ PLAN-02-04: 会话管理...
+```
+
+4. **Partial 即时记录:** 返回 `"partial"` 的 agent 结果立即写入 `.planning/phase-{N}/`，确保后续恢复时无需重新执行已完成的任务。
+
 ### 完成标记解析
 
 Executor 返回后，从其输出中提取最后一个 JSON 代码块作为完成标记：
@@ -210,6 +234,23 @@ wf-tools state begin-phase --phase {N+1}
 ```
 
 > **重要:** 禁止直接 Write/Edit STATE.md。所有状态变更必须通过 `wf-tools state` 子命令完成。
+
+### 阶段指标记录（可选）
+
+当 `config.telemetry.enabled === true` 时，通过 CLI 记录阶段执行指标：
+
+```bash
+wf-tools state merge '{"phase_N_metrics":{"duration_sec":245,"commits":8,"files_changed":12,"tasks_completed":5,"tasks_total":5,"timestamp":"2026-04-14T10:00:00Z"}}'
+```
+
+指标来源：
+- `duration_sec` — 阶段开始到验证通过的秒数
+- `commits` — `git log --oneline` 计数（从阶段开始 commit 到最新）
+- `files_changed` — `git diff --stat` 中的文件数
+- `tasks_completed/total` — 从 SUMMARY.md 汇总
+
+> 指标写入 STATE.md frontmatter，可通过 `wf-tools state get phase_N_metrics` 查询。
+> 默认关闭，不影响执行流程。
 
 提交到 git：
 ```bash
