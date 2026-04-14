@@ -22,7 +22,7 @@ const STALE_SECONDS = 60;
 const DEBOUNCE_SECONDS = 60;    // same-level warnings at most once per 60 seconds
 
 let input = '';
-const stdinTimeout = setTimeout(() => process.exit(0), 15000);
+const stdinTimeout = setTimeout(() => process.exit(0), 10000);
 process.stdin.setEncoding('utf8');
 process.stdin.on('data', chunk => input += chunk);
 process.stdin.on('end', () => {
@@ -32,7 +32,7 @@ process.stdin.on('end', () => {
     const sessionId = data.session_id;
 
     if (!sessionId) process.exit(0);
-    if (/[/\\]|\.\./.test(sessionId)) process.exit(0);
+    if (!/^[a-zA-Z0-9_-]+$/.test(sessionId)) process.exit(0);
 
     // 检查是否禁用了 context 警告
     const cwd = data.cwd || process.cwd();
@@ -81,7 +81,9 @@ process.stdin.on('end', () => {
 
     warnData.lastWarnTime = nowMs;
     warnData.lastLevel = currentLevel;
-    fs.writeFileSync(warnPath, JSON.stringify(warnData));
+    const warnTmp = warnPath + '.tmp';
+    fs.writeFileSync(warnTmp, JSON.stringify(warnData));
+    fs.renameSync(warnTmp, warnPath);
 
     const isWfActive = fs.existsSync(path.join(cwd, '.planning', 'STATE.md'));
 
@@ -116,6 +118,7 @@ process.stdin.on('end', () => {
 
     process.stdout.write(JSON.stringify(output));
   } catch (e) {
+    try { fs.writeSync(2, `[wf-context-monitor] ${e.message}\n`); } catch {}
     process.exit(0);
   }
 });

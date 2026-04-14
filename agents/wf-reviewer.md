@@ -247,14 +247,4 @@ iteration: 1
 | No files to review | complete | REVIEW.md with status: clean, files_reviewed: 0 |
 </output_contract>
 
-## 完成标记
-
-任务完成后，输出以下 JSON 完成标记作为**最终输出**。输出完成标记后不再执行任何操作。
-
-```json
-{
-  "status": "complete",
-  "artifacts": ["<review_path>"],
-  "summary": "Review complete: X files reviewed, Y findings (Z critical)"
-}
-```
+See @wf/references/agent-contracts.md for completion marker format.

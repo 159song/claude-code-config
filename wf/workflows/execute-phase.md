@@ -50,11 +50,8 @@ orchestrator 保持轻量：发现计划 → 分析依赖 → 分波 → 派发 
 
 ### 恢复检测
 
-检查是否存在 partial SUMMARY.md（来自之前因 context 预算暂停的执行）：
-
-1. 扫描 `.planning/phase-{N}/` 下以 `SUMMARY` 开头且包含 `PARTIAL` 标记的文件
-2. 如果存在，将其路径作为 `resume_from` 传递给 executor input contract
-3. Executor 将跳过已完成的任务，从恢复点继续
+> 规则见 `wf/references/shared-patterns.md` § 恢复检测。
+> 检测到 partial SUMMARY 时，将其路径作为 `resume_from` 传递给 executor。
 
 ### Agent 调用
 
@@ -109,22 +106,14 @@ Wave 2: ██░░ 1/4 完成
 
 ### 完成标记解析
 
-Executor 返回后，从其输出中提取最后一个 JSON 代码块作为完成标记：
+Executor 返回后，按 `shared-patterns.md` § 完成标记格式提取最后一个 JSON 代码块。
+状态路由与重试规则见 `shared-patterns.md` § 状态路由、重试规则。
 
-| Status | 处理 |
-|--------|------|
-| `"complete"` | 计划执行成功，继续下一步 |
-| `"partial"` | 记录部分完成状态。检查 SUMMARY.md 中的恢复点，通知用户可通过 `--wave` 参数从恢复点继续 |
-| `"failed"` | 重试一次：在新 prompt 中附带失败的 summary 信息。重试仍失败则记录错误到 SUMMARY.md 并报告用户 |
+Execute 特殊处理：
+- `"partial"` → 通知用户可通过 `--wave` 参数从恢复点继续
+- `"failed"` → 重试 prompt 附带上次失败的 summary
 
-**重试规则：** 最多重试 1 次。重试 prompt 包含原始任务描述 + 上次失败的 summary。第二次失败后停止，不无限重试。
-
-**并行条件：**
-- `config.parallelization.enabled === true`
-- wave 内计划数 >= `config.parallelization.min_plans_for_parallel`
-- 计划之间无文件冲突
-
-不满足条件时回退为串行执行。
+**并行条件:** 见 `shared-patterns.md` § 并行条件。不满足时回退串行。
 
 ### 交互模式（`--interactive`）
 
@@ -206,15 +195,9 @@ Agent({
 
 ### 验证完成标记解析
 
-Verifier 返回后，从其输出中提取最后一个 JSON 代码块作为完成标记：
-
-| Status | 处理 |
-|--------|------|
-| `"complete"` | 验证通过，继续完成阶段 |
-| `"partial"` | 部分验证通过，记录未通过项，生成 gap closure 计划 |
-| `"failed"` | 重试一次：附带失败详情重新调用 verifier。重试仍失败则报告用户 |
-
-**重试规则：** 最多重试 1 次。第二次失败后停止，不无限重试。
+按 `shared-patterns.md` § 完成标记格式 + 状态路由处理 verifier 返回。验证特殊处理：
+- `"partial"` → 生成 gap closure 计划
+- `"failed"` → 附带失败详情重试一次（见 § 重试规则）
 
 验证结果写入 `.planning/phase-{N}/VERIFICATION.md`。
 

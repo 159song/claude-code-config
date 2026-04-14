@@ -212,7 +212,7 @@ Skill(verify-work, { flags: "--smoke" })
    - 提示: "验证仍未通过。运行 `/wf-autonomous --from N` 在修复后继续。"
    - **停止循环。不跳过到下一阶段。**（D-02: cross-phase failure = retry then pause, never skip）
 
-Gap closure 限制：每个阶段最多 1 次自动重试（T-05-03 mitigation），避免无限循环。
+Gap closure 限制：每个阶段最多 1 次自动重试（T-05-03 mitigation，见 `shared-patterns.md` § 重试规则），避免无限循环。
 
 ### 2.6 Advance to Next Phase
 

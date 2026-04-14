@@ -6,6 +6,18 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
+// Pre-cache paths (avoid recalculation per invocation)
+const homeDir = os.homedir();
+const claudeDir = process.env.CLAUDE_CONFIG_DIR || path.join(homeDir, '.claude');
+const todosDir = path.join(claudeDir, 'todos');
+
+// Atomic file write: write to .tmp then rename (prevents corrupted reads)
+function atomicWrite(fp, data) {
+  const tmp = fp + '.tmp';
+  fs.writeFileSync(tmp, data);
+  fs.renameSync(tmp, fp);
+}
+
 let input = '';
 const stdinTimeout = setTimeout(() => process.exit(0), 15000);
 process.stdin.setEncoding('utf8');
@@ -27,7 +39,7 @@ process.stdin.on('end', () => {
       const used = Math.max(0, Math.min(100, Math.round(100 - usableRemaining)));
 
       // 写入 bridge 文件供 context-monitor hook 读取
-      const sessionSafe = session && !/[/\\]|\.\./.test(session);
+      const sessionSafe = session && /^[a-zA-Z0-9_-]+$/.test(session);
       if (sessionSafe) {
         try {
           const bridgePath = path.join(os.tmpdir(), `claude-ctx-${session}.json`);
@@ -37,8 +49,15 @@ process.stdin.on('end', () => {
             used_pct: used,
             timestamp: Math.floor(Date.now() / 1000)
           });
-          fs.writeFileSync(bridgePath, bridgeData);
-        } catch (e) {}
+          // Skip write if data unchanged (avoid unnecessary disk I/O)
+          let existing = '';
+          try { existing = fs.readFileSync(bridgePath, 'utf8'); } catch {}
+          if (bridgeData !== existing) {
+            atomicWrite(bridgePath, bridgeData);
+          }
+        } catch (e) {
+          try { fs.writeSync(2, `[wf-statusline] bridge write: ${e.message}\n`); } catch {}
+        }
       }
 
       // 进度条 (10 段)
@@ -58,9 +77,6 @@ process.stdin.on('end', () => {
 
     // 当前任务
     let task = '';
-    const homeDir = os.homedir();
-    const claudeDir = process.env.CLAUDE_CONFIG_DIR || path.join(homeDir, '.claude');
-    const todosDir = path.join(claudeDir, 'todos');
     if (session && fs.existsSync(todosDir)) {
       try {
         const files = fs.readdirSync(todosDir)
@@ -69,11 +85,9 @@ process.stdin.on('end', () => {
           .sort((a, b) => b.mtime - a.mtime);
 
         if (files.length > 0) {
-          try {
-            const todos = JSON.parse(fs.readFileSync(path.join(todosDir, files[0].name), 'utf8'));
-            const inProgress = todos.find(t => t.status === 'in_progress');
-            if (inProgress) task = inProgress.activeForm || '';
-          } catch (e) {}
+          const todos = JSON.parse(fs.readFileSync(path.join(todosDir, files[0].name), 'utf8'));
+          const inProgress = todos.find(t => t.status === 'in_progress');
+          if (inProgress) task = inProgress.activeForm || '';
         }
       } catch (e) {}
     }
@@ -86,6 +100,6 @@ process.stdin.on('end', () => {
       process.stdout.write(`\x1b[36mWF\x1b[0m │ \x1b[2m${model}\x1b[0m │ \x1b[2m${dirname}\x1b[0m${ctx}`);
     }
   } catch (e) {
-    // 静默失败
+    try { fs.writeSync(2, `[wf-statusline] ${e.message}\n`); } catch {}
   }
 });

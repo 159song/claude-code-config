@@ -32,7 +32,7 @@ const INJECTION_PATTERNS = [
 const REDUCED_SEVERITY_EXTENSIONS = ['.md', '.txt', '.log'];
 
 let input = '';
-const stdinTimeout = setTimeout(() => process.exit(0), 15000);
+const stdinTimeout = setTimeout(() => process.exit(0), 5000);
 process.stdin.setEncoding('utf8');
 process.stdin.on('data', chunk => input += chunk);
 process.stdin.on('end', () => {
@@ -86,7 +86,8 @@ process.stdin.on('end', () => {
     };
 
     process.stdout.write(JSON.stringify(output));
-  } catch {
+  } catch (e) {
+    try { fs.writeSync(2, `[wf-prompt-guard] ${e.message}\n`); } catch {}
     process.exit(0);
   }
 });

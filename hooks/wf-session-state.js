@@ -10,7 +10,7 @@ const path = require('path');
 const os = require('os');
 
 let input = '';
-const stdinTimeout = setTimeout(() => process.exit(0), 15000);
+const stdinTimeout = setTimeout(() => process.exit(0), 10000);
 process.stdin.setEncoding('utf8');
 process.stdin.on('data', chunk => input += chunk);
 process.stdin.on('end', () => {
@@ -18,78 +18,10 @@ process.stdin.on('end', () => {
   try {
     main();
   } catch (e) {
+    try { fs.writeSync(2, `[wf-session-state] ${e.message}\n`); } catch {}
     process.exit(0);
   }
 });
-
-/**
- * Inline minimal frontmatter parser (self-contained, avoid loading full state.cjs in hook context)
- * Supports 2-level nested YAML keys
- * @param {string} content - file content with --- delimited frontmatter
- * @returns {{ frontmatter: object, body: string }}
- */
-function parseFm(content) {
-  if (!content || !content.startsWith('---\n')) {
-    return { frontmatter: {}, body: content || '' };
-  }
-  const endIdx = content.indexOf('\n---\n', 4);
-  if (endIdx === -1) {
-    return { frontmatter: {}, body: content };
-  }
-
-  const yamlBlock = content.slice(4, endIdx);
-  const lines = yamlBlock.split('\n');
-  const fm = {};
-  let currentParent = null;
-
-  for (const line of lines) {
-    if (!line) continue;
-
-    // Indented line = child key of currentParent
-    const indentMatch = line.match(/^(\s+)([\w][\w_]*):\s*(.*)$/);
-    if (indentMatch && currentParent) {
-      if (typeof fm[currentParent] !== 'object' || fm[currentParent] === null) {
-        fm[currentParent] = {};
-      }
-      fm[currentParent][indentMatch[2]] = parseVal(indentMatch[3].trim());
-      continue;
-    }
-
-    // Top-level key
-    const match = line.match(/^([\w][\w_]*):\s*(.*)$/);
-    if (match) {
-      const value = match[2].trim();
-      if (value === '') {
-        fm[match[1]] = null;
-        currentParent = match[1];
-      } else {
-        fm[match[1]] = parseVal(value);
-        currentParent = null;
-      }
-    }
-  }
-
-  return { frontmatter: fm, body: content.slice(endIdx + 5) };
-}
-
-/**
- * Parse simple YAML value
- * @param {string} v - raw value string
- * @returns {*}
- */
-function parseVal(v) {
-  if (v === undefined || v === null) return null;
-  v = String(v).trim();
-  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
-    return v.slice(1, -1);
-  }
-  if (/^\d+$/.test(v)) return parseInt(v, 10);
-  if (/^\d+\.\d+$/.test(v)) return parseFloat(v);
-  if (v === 'true') return true;
-  if (v === 'false') return false;
-  if (v === 'null' || v === '~' || v === '') return null;
-  return v;
-}
 
 /**
  * Detect current workflow step by checking phase directory artifacts
@@ -143,8 +75,8 @@ function main() {
   // Exit silently if no session ID
   if (!sessionId) process.exit(0);
 
-  // T-04-02: Validate session_id to prevent path traversal
-  if (/[/\\]|\.\./.test(sessionId)) process.exit(0);
+  // Validate session_id (whitelist: alphanumeric + hyphen + underscore)
+  if (!/^[a-zA-Z0-9_-]+$/.test(sessionId)) process.exit(0);
 
   const cwd = data.cwd || process.cwd();
   const homeDir = os.homedir();
@@ -155,6 +87,15 @@ function main() {
   try {
     utils = require(path.join(libDir, 'utils.cjs'));
   } catch (e) {
+    process.exit(0);
+  }
+
+  // Use shared frontmatter parser (DRY — same implementation as state.cjs)
+  let parseFm;
+  try {
+    parseFm = require(path.join(__dirname, '..', 'wf', 'bin', 'lib', 'frontmatter.cjs')).parseFrontmatter;
+  } catch (e) {
+    // Fallback: if frontmatter.cjs not found, exit gracefully
     process.exit(0);
   }
 
@@ -241,6 +182,10 @@ function main() {
   // D-15: Write bridge file to /tmp/ for other hooks
   const bridgePath = path.join(os.tmpdir(), `wf-session-${sessionId}.json`);
   try {
-    fs.writeFileSync(bridgePath, JSON.stringify(sessionState));
-  } catch (e) {}
+    const tmp = bridgePath + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(sessionState));
+    fs.renameSync(tmp, bridgePath);
+  } catch (e) {
+    try { fs.writeSync(2, `[wf-session-state] bridge write: ${e.message}\n`); } catch {}
+  }
 }

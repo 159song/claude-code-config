@@ -25,6 +25,15 @@
 
 **解析规则:** 工作流应从 agent 输出中提取最后一个 JSON 代码块，验证 `status` 是 `"complete"`/`"partial"`/`"failed"` 之一。如果无法解析，默认视为 `"failed"`。artifact 路径必须在 `.planning/` 或项目根目录下。
 
+### 完成标记行为
+
+任务完成后，输出以下 JSON 完成标记作为**最终输出**。输出完成标记后不再执行任何操作。
+
+状态值：
+- `"complete"` -- 所有工作成功完成
+- `"partial"` -- 部分完成，剩余工作已保存供后续继续（context 预算不足或阻塞问题）
+- `"failed"` -- 无法完成，错误详情在 summary 中
+
 ### 工作流路由规则
 
 | Status | Action |

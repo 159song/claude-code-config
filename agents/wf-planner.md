@@ -179,19 +179,4 @@ must_haves:
 | All plans generated | complete | Full plan(s) with all tasks and waves |
 </output_contract>
 
-## 完成标记
-
-任务完成后，输出以下 JSON 完成标记作为**最终输出**。输出完成标记后不再执行任何操作。
-
-状态值：
-- `"complete"` -- 所有工作成功完成
-- `"partial"` -- 部分完成，剩余工作已保存供后续继续（context 预算不足或阻塞问题）
-- `"failed"` -- 无法完成，错误详情在 summary 中
-
-```json
-{
-  "status": "complete",
-  "artifacts": [".planning/phase-{N}/PLAN.md"],
-  "summary": "Plan generated with X tasks in Y waves"
-}
-```
+See @wf/references/agent-contracts.md for completion marker format.
