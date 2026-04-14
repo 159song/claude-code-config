@@ -1,15 +1,34 @@
 'use strict';
 
 // init.test.cjs — TDD tests for lib/init.cjs
-// Tests must fail before init.cjs exists (RED phase)
+// Uses temp fixtures so tests are self-contained and don't depend on repo state
 
 const assert = require('assert');
 const { test } = require('node:test');
 const path = require('path');
+const fs = require('fs');
+const os = require('os');
 const { execFileSync } = require('child_process');
 
 // Use the worktree cwd as a real project root (has .planning/)
 const CWD = path.resolve(__dirname, '../../..');
+
+// Create a temp fixture with a proper phase directory structure
+function createFixtureCwd() {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'wf-init-test-'));
+  const planning = path.join(tmp, '.planning');
+  fs.mkdirSync(path.join(planning, 'phases', '01-cli-foundation'), { recursive: true });
+  fs.writeFileSync(path.join(planning, 'PROJECT.md'), '# Test Project\n');
+  fs.writeFileSync(path.join(planning, 'config.json'), '{}');
+  fs.writeFileSync(path.join(planning, 'ROADMAP.md'), '# Roadmap\n');
+  fs.writeFileSync(path.join(planning, 'REQUIREMENTS.md'), '# Requirements\n');
+  fs.writeFileSync(path.join(planning, 'phases', '01-cli-foundation', 'CONTEXT.md'), '# Context\n');
+  return tmp;
+}
+
+function cleanupFixture(dir) {
+  try { fs.rmSync(dir, { recursive: true, force: true }); } catch {}
+}
 
 test('init module exports correct functions', () => {
   const init = require('./init.cjs');
@@ -43,11 +62,16 @@ test('initPhaseOp returns all D-08 fields for existing phase 1', () => {
 });
 
 test('initPhaseOp for existing phase 1 returns phase_found=true', () => {
-  const { initPhaseOp } = require('./init.cjs');
-  const result = initPhaseOp(CWD, '1');
-  assert.strictEqual(result.phase_found, true, 'phase_found should be true for phase 1');
-  assert.ok(result.phase_dir, 'phase_dir should be non-null');
-  assert.ok(result.phase_dir.includes('01-cli-foundation'), 'phase_dir should contain 01-cli-foundation');
+  const fixture = createFixtureCwd();
+  try {
+    const { initPhaseOp } = require('./init.cjs');
+    const result = initPhaseOp(fixture, '1');
+    assert.strictEqual(result.phase_found, true, 'phase_found should be true for phase 1');
+    assert.ok(result.phase_dir, 'phase_dir should be non-null');
+    assert.ok(result.phase_dir.includes('01-cli-foundation'), 'phase_dir should contain 01-cli-foundation');
+  } finally {
+    cleanupFixture(fixture);
+  }
 });
 
 test('initPhaseOp for non-existent phase 99 returns phase_found=false', () => {
@@ -87,9 +111,14 @@ test('initNewProject returns all required fields', () => {
 });
 
 test('initNewProject has_project=true for real project', () => {
-  const { initNewProject } = require('./init.cjs');
-  const result = initNewProject(CWD);
-  assert.strictEqual(result.has_project, true, 'CWD has PROJECT.md so has_project must be true');
+  const fixture = createFixtureCwd();
+  try {
+    const { initNewProject } = require('./init.cjs');
+    const result = initNewProject(fixture);
+    assert.strictEqual(result.has_project, true, 'fixture has PROJECT.md so has_project must be true');
+  } finally {
+    cleanupFixture(fixture);
+  }
 });
 
 test('initQuick returns config, project_root, planning_exists, has_roadmap, response_language', () => {
@@ -134,12 +163,17 @@ test('run with unknown sub-mode exits with error', () => {
 });
 
 test('run with phase-op sub-mode writes JSON to stdout', () => {
-  const out = execFileSync(process.execPath, [
-    '-e',
-    `require('./init.cjs').run(${JSON.stringify(CWD)}, ['phase-op', '1'])`,
-  ], { cwd: __dirname, stdio: ['pipe', 'pipe', 'pipe'] });
-  const json = JSON.parse(out.toString());
-  assert.strictEqual(json.phase_found, true, 'JSON output should have phase_found=true');
+  const fixture = createFixtureCwd();
+  try {
+    const out = execFileSync(process.execPath, [
+      '-e',
+      `require('./init.cjs').run(${JSON.stringify(fixture)}, ['phase-op', '1'])`,
+    ], { cwd: __dirname, stdio: ['pipe', 'pipe', 'pipe'] });
+    const json = JSON.parse(out.toString());
+    assert.strictEqual(json.phase_found, true, 'JSON output should have phase_found=true');
+  } finally {
+    cleanupFixture(fixture);
+  }
 });
 
 test('run with new-project sub-mode writes JSON to stdout', () => {
