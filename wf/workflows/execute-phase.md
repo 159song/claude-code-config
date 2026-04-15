@@ -42,17 +42,8 @@ orchestrator 保持轻量：发现计划 → 分析依赖 → 分波 → 派发 
 
 1. 对每个 wave，提取所有计划的 `files_modified` 列表
 2. 计算 wave 内每对计划之间的文件交集
-3. 如果存在交集（两个计划修改同一文件）：
-   - 将冲突的计划从并行降级为串行执行
-   - 显示警告：
-     ```
-     ⚠ Wave {W} 检测到文件冲突:
-       PLAN-{A} 和 PLAN-{B} 都修改: {conflicting_files}
-       → 降级为串行执行以避免合并冲突
-     ```
+3. 如果存在交集 → 冲突计划降级为串行，显示警告（列出冲突文件和降级原因）
 4. 无冲突的计划保持并行
-
-> **设计理念:** 预防优于事后处理。在 agent 消耗 context 之前发现冲突，避免 worktree 合并失败导致的工作浪费。
 </step>
 
 <step name="wave_execution">
@@ -113,16 +104,9 @@ Agent({
    - 立即启动重试（不等待同 wave 其他 agent 完成）
    - 重试与剩余 agent 并行进行，减少总等待时间
 
-3. **进度反馈:** 每个 agent 完成后刷新进度：
-```
-Wave 2: ██░░ 1/4 完成
-  ✅ PLAN-02-01: 用户模型 (32s)
-  ⏳ PLAN-02-02: 认证端点...
-  ⏳ PLAN-02-03: 权限系统...
-  ⏳ PLAN-02-04: 会话管理...
-```
+3. **进度反馈:** 每个 agent 完成后刷新进度显示（ui-brand 进度条格式）
 
-4. **Partial 即时记录:** 返回 `"partial"` 的 agent 结果立即写入 `.planning/phase-{N}/`，确保后续恢复时无需重新执行已完成的任务。
+4. **Partial 即时记录:** `"partial"` 结果立即写入 `.planning/phase-{N}/`，确保恢复时无需重新执行。
 
 ### 完成标记解析
 
@@ -137,17 +121,7 @@ Execute 特殊处理：
 
 ### 交互模式（`--interactive`）
 
-逐个任务内联执行，每个任务后展示检查点：
-
-```
-┌─ 任务 3/12 完成 ──────────────────────────┐
-│ ✅ Task 1.3: 创建数据模型                  │
-│    文件: src/models/user.ts               │
-│    验证: 类型检查通过                      │
-│                                           │
-│ ▶ 继续下一任务? [Y/n/跳过/中止]            │
-└───────────────────────────────────────────┘
-```
+逐个任务内联执行，每个任务后展示检查点（ui-brand 检查点框: 任务状态、文件、验证结果、继续/跳过/中止选项）。
 </step>
 
 <step name="wave_merge">
@@ -177,16 +151,13 @@ Execute 特殊处理：
 wf-tools state advance-plan --phase {N} --plan {M}
 ```
 
-```
-Wave 2/3 完成 ████████████░░░░ 67%
-  ✅ 测试通过: 42/42
-  ✅ 无 schema 漂移
-  ▶ 继续 Wave 3...
-```
+显示 wave 进度（ui-brand 进度条: 测试结果、schema 状态）。
 </step>
 
 <step name="verify_phase">
 ## 5. 阶段验证
+
+**必须:** 执行此步骤前，先 Read `$HOME/.claude/wf/references/verification-patterns.md` 获取 4 级验证模型详细定义。不读取则无法正确验证。
 
 所有 wave 完成后，启动 `wf-verifier` agent：
 
@@ -261,17 +232,7 @@ git add .planning/
 git commit -m "chore(phase-{N}): complete execution — verified"
 ```
 
-```
-╔══════════════════════════════════════════╗
-║  WF · 阶段 {N} 执行完成                  ║
-╚══════════════════════════════════════════╝
-
-  任务: {{completed}}/{{total}}
-  验证: {{verification_status}}
-  耗时: {{duration}}
-
-▶ 下一步: /wf-discuss-phase {N+1}
-```
+显示完成横幅（ui-brand 标准横幅: 任务数、验证状态、耗时、下一步路由）。
 
 如果 `--chain` 模式，自动调用 `/wf-verify-work`。
 </step>

@@ -26,7 +26,6 @@ orchestrator 保持轻量：发现计划 → 分析依赖 → 分波 → 派发 
 <execution_context>
 @$HOME/.claude/wf/workflows/execute-phase.md
 @$HOME/.claude/wf/references/ui-brand.md
-@$HOME/.claude/wf/references/verification-patterns.md
 </execution_context>
 
 <context>

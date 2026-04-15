@@ -21,7 +21,6 @@ allowed-tools:
 
 <execution_context>
 @$HOME/.claude/wf/workflows/code-review.md
-@$HOME/.claude/wf/references/agent-contracts.md
 @$HOME/.claude/wf/references/ui-brand.md
 </execution_context>
 

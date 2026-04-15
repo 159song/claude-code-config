@@ -25,8 +25,6 @@ allowed-tools:
 <execution_context>
 @$HOME/.claude/wf/workflows/new-project.md
 @$HOME/.claude/wf/references/ui-brand.md
-@$HOME/.claude/wf/templates/project.md
-@$HOME/.claude/wf/templates/requirements.md
 </execution_context>
 
 <context>

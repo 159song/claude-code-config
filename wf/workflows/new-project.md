@@ -23,6 +23,8 @@
 <step name="gather_context">
 ## 1. 收集项目上下文
 
+**必须:** 执行此步骤前，先 Read `$HOME/.claude/wf/templates/project.md` 获取项目文档模板格式。不读取则产出格式不一致。
+
 通过结构化提问了解项目：
 
 **必答问题（最多 5 个）：**
@@ -120,6 +122,8 @@ Agent({ subagent_type: "wf-researcher", model: MODEL, prompt: `
 <step name="requirements">
 ## 4. 生成需求文档
 
+**必须:** 执行此步骤前，先 Read `$HOME/.claude/wf/templates/requirements.md` 获取需求文档模板格式。不读取则产出格式不一致。
+
 基于项目上下文和研究结果，生成 `.planning/REQUIREMENTS.md`：
 
 **需求分类：**
@@ -200,22 +204,7 @@ git commit -m "chore(planning): initialize project — {{project_name}}"
 <step name="route_next">
 ## 7. 路由下一步
 
-显示初始化完成摘要：
-
-```
-╔══════════════════════════════════════════╗
-║  WF · 项目初始化完成                     ║
-╚══════════════════════════════════════════╝
-
-项目: {{name}}
-阶段: {{phase_count}} 个阶段
-模式: {{mode}}
-
-┌─ 下一步 ──────────────────────────────────┐
-│ ▶ /wf-discuss-phase 1  开始讨论第一阶段    │
-│   /wf-autonomous        全自动执行所有阶段  │
-└───────────────────────────────────────────┘
-```
+显示初始化完成摘要（ui-brand 标准横幅: 项目名、阶段数、模式；下一步路由: /wf-discuss-phase 1、/wf-autonomous）。
 
 如果 `--auto` 模式，自动调用 `/wf-autonomous`。
 </step>

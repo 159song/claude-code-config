@@ -24,7 +24,6 @@ allowed-tools:
 <execution_context>
 @$HOME/.claude/wf/workflows/plan-phase.md
 @$HOME/.claude/wf/references/ui-brand.md
-@$HOME/.claude/wf/references/gates.md
 </execution_context>
 
 <context>

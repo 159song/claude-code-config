@@ -41,22 +41,7 @@ ROADMAP_JSON=$(node "$HOME/.claude/wf/bin/wf-tools.cjs" roadmap analyze)
 - 验证版本格式匹配 `v\d+\.\d+`（例如 v1.0、v2.1）
 - 格式错误时提示用户重新输入
 
-展示就绪摘要：
-
-```
-╔══════════════════════════════════════════╗
-║  WF · 里程碑完成                         ║
-╚══════════════════════════════════════════╝
-
-版本: {{version}}
-阶段: {{completed}}/{{total}} 已完成
-需求: {{checked}}/{{total_reqs}} 已覆盖
-
-┌─ 检查点 ─────────────────────────────────┐
-│ {{✅/⚠️}} 阶段完成状态                    │
-│ {{✅/⚠️}} 需求覆盖状态                    │
-└───────────────────────────────────────────┘
-```
+展示就绪摘要（ui-brand 标准横幅: 版本、阶段完成比、需求覆盖比；检查点框: 阶段完成状态、需求覆盖状态）。
 
 如果有未完成项，提供选项：
 1. **继续** -- 标记里程碑完成（已知缺口记录在 PROJECT.md）
@@ -97,15 +82,7 @@ git add .planning/milestones/{{version}}/
 git commit -m "chore: archive milestone {{version}}"
 ```
 
-显示归档结果：
-
-```
-┌─ 归档完成 ────────────────────────────────┐
-│ ✅ 归档目录: .planning/milestones/{{version}}/
-│ ✅ 文件数量: {{files_copied}}              │
-│ ✅ Git 标签: {{version}}                   │
-└───────────────────────────────────────────┘
-```
+显示归档结果（ui-brand 检查点框: 归档目录路径、文件数量、Git 标签）。
 </step>
 
 <step name="update_project_md">
@@ -167,34 +144,13 @@ node "$HOME/.claude/wf/bin/wf-tools.cjs" state set \
   --stopped_at "Milestone {{version}} archived, starting {{next_version}}"
 ```
 
-显示重置结果：
-
-```
-┌─ 状态重置 ────────────────────────────────┐
-│ ✅ 清理阶段目录: {{removed_dirs_count}} 个 │
-│ ✅ 删除文件: {{removed_files_count}} 个     │
-│ ✅ STATE.md 已更新                         │
-│ ▶ 下一里程碑: {{next_version}}             │
-└───────────────────────────────────────────┘
-```
+显示重置结果（ui-brand 检查点框: 清理目录数、删除文件数、STATE.md 更新状态、下一里程碑版本）。
 </step>
 
 <step name="chain_new_milestone">
 ## 5. 自动链接新里程碑（per D-09）
 
-显示归档完成消息：
-
-```
-╔══════════════════════════════════════════╗
-║  WF · 里程碑 {{version}} 归档完成        ║
-╚══════════════════════════════════════════╝
-
-  阶段: {{phase_count}} 个阶段已归档
-  文件: {{files_copied}} 个文件已归档
-  标签: {{version}}
-
-  归档位置: .planning/milestones/{{version}}/
-```
+显示归档完成消息（ui-brand 标准横幅: 版本号、已归档阶段数、已归档文件数、git 标签、归档位置）。
 
 读取 `.planning/config.json` 的 `milestone.auto_new_milestone` 配置：
 
@@ -243,14 +199,7 @@ Skill(new-milestone)
 
 按照 `wf/workflows/new-milestone.md` 端到端执行新里程碑初始化。
 
-**如果用户选择跳过：**
-
-```
-┌─ 下一步 ──────────────────────────────────┐
-│ ▶ /wf-new-milestone  启动新里程碑          │
-│   /wf-progress        查看整体进度         │
-└───────────────────────────────────────────┘
-```
+**如果用户选择跳过：** 显示下一步路由（ui-brand 检查点框: /wf-new-milestone、/wf-progress）。
 </step>
 
 </process>

@@ -87,16 +87,7 @@ SCOPE_JSON=$(node "$HOME/.claude/wf/bin/wf-tools.cjs" review scope <phase> [--fi
 
 退出工作流。
 
-如果 `files` 非空，显示范围信息：
-
-```
-┌─ 审查范围 ─────────────────────────────────┐
-│ 阶段: Phase {N}                            │
-│ 文件数: {files.length}                     │
-│ 来源: {tier}                               │
-│ 深度: {depth}                              │
-└───────────────────────────────────────────┘
-```
+如果 `files` 非空，显示范围信息（ui-brand 检查点框: 阶段号、文件数、来源 tier、审查深度）。
 </step>
 
 <step name="review_fix_chain">
@@ -183,48 +174,11 @@ END LOOP
 <step name="present_results">
 ## 5. 展示结果
 
-使用 ui-brand.md 格式展示最终审查摘要：
+使用 ui-brand.md 格式展示最终审查摘要。
 
-**审查通过时:**
+**审查通过时:** 显示完成横幅（ui-brand 标准横幅: 阶段号、文件数、深度、结果通过、迭代轮数、修复数、报告路径）。
 
-```
-╔══════════════════════════════════════════╗
-║  WF · 代码审查完成                       ║
-╚══════════════════════════════════════════╝
-
-  阶段: Phase {N}
-  文件数: {files_reviewed}
-  深度: {depth}
-  结果: ✅ 通过
-
-  迭代: {iteration} 轮
-  修复: {fixed_count} 个问题
-
-▶ 报告: {review_path}
-```
-
-**有剩余问题时:**
-
-```
-╔══════════════════════════════════════════╗
-║  WF · 代码审查完成                       ║
-╚══════════════════════════════════════════╝
-
-  阶段: Phase {N}
-  文件数: {files_reviewed}
-  深度: {depth}
-  结果: ⚠️ 有剩余问题
-
-  迭代: {iteration}/{max_iterations} 轮
-  已修复: {fixed_count} 个
-  剩余: {remaining_count} 个
-
-  剩余问题:
-    - CR-03 [high] 未处理的空值 (example.cjs:L15)
-    - CR-07 [medium] 函数过长 (utils.cjs:L80-L180)
-
-▶ 报告: {review_path}
-```
+**有剩余问题时:** 显示完成横幅（ui-brand 标准横幅: 阶段号、文件数、深度、结果含剩余问题、迭代轮数、已修复数、剩余数、剩余问题列表、报告路径）。
 </step>
 
 <step name="commit_review">

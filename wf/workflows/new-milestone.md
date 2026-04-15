@@ -55,23 +55,7 @@ CONFIG_JSON=$(node "$HOME/.claude/wf/bin/wf-tools.cjs" config)
 
 **如果有前一里程碑归档：**
 
-展示前一里程碑摘要：
-
-```
-╔══════════════════════════════════════════╗
-║  WF · 新里程碑                           ║
-╚══════════════════════════════════════════╝
-
-前一里程碑: {{prev_version}}
-已完成阶段: {{phase_count}} 个
-已完成需求: {{req_count}} 个
-
-┌─ 已交付功能 ──────────────────────────────┐
-│ • {{功能1}}                                │
-│ • {{功能2}}                                │
-│ • {{功能3}}                                │
-└───────────────────────────────────────────┘
-```
+展示前一里程碑摘要（ui-brand 标准横幅: 前一版本号、已完成阶段数、已完成需求数；检查点框: 已交付功能列表）。
 
 **收集新目标：**
 
@@ -87,21 +71,7 @@ CONFIG_JSON=$(node "$HOME/.claude/wf/bin/wf-tools.cjs" config)
 - **里程碑名称:** 简短名称（1-3 个词，如 "安全加固"、"性能优化"）
 - **高层目标:** 3-5 个要点（用户自由描述）
 
-确认收集结果：
-
-```
-┌─ 里程碑确认 ──────────────────────────────┐
-│ 版本: {{version}}                          │
-│ 名称: {{name}}                             │
-│                                            │
-│ 目标:                                      │
-│ 1. {{goal_1}}                              │
-│ 2. {{goal_2}}                              │
-│ 3. {{goal_3}}                              │
-└───────────────────────────────────────────┘
-```
-
-用户确认后继续。
+确认收集结果（ui-brand 检查点框: 版本、名称、目标列表）。用户确认后继续。
 </step>
 
 <step name="research">
@@ -141,15 +111,7 @@ Agent({ subagent_type: "wf-researcher", model: MODEL, prompt: `
 
 研究结果汇总到 `.planning/RESEARCH-SUMMARY.md`（临时文件，供 roadmapper 消费）。
 
-显示研究摘要：
-
-```
-┌─ 研究完成 ────────────────────────────────┐
-│ ✅ 研究方向: {{research_count}} 个         │
-│ 📝 关键发现: {{key_findings}}              │
-│ 📄 摘要: .planning/RESEARCH-SUMMARY.md     │
-└───────────────────────────────────────────┘
-```
+显示研究摘要（ui-brand 检查点框: 研究方向数、关键发现、摘要文件路径）。
 </step>
 
 <step name="generate_requirements">
@@ -200,18 +162,7 @@ Agent({ subagent_type: "wf-researcher", model: MODEL, prompt: `
 
 写入 `.planning/REQUIREMENTS.md`。
 
-展示需求摘要让用户确认：
-
-```
-┌─ 需求概览 ────────────────────────────────┐
-│ 功能需求: {{fr_count}} 个                  │
-│ 非功能需求: {{nfr_count}} 个               │
-│ 延迟需求: {{deferred_count}} 个            │
-│ 超出范围: {{oos_count}} 个                 │
-└───────────────────────────────────────────┘
-```
-
-等待用户确认或调整。
+展示需求摘要让用户确认（ui-brand 检查点框: 功能需求数、非功能需求数、延迟需求数、超出范围数）。等待用户确认或调整。
 </step>
 
 <step name="generate_roadmap">
@@ -250,20 +201,7 @@ Roadmapper 返回后，提取 JSON 完成标记：
 
 Roadmapper 产出 `.planning/ROADMAP.md`。
 
-展示路线图摘要：
-
-```
-┌─ 路线图概览 ──────────────────────────────┐
-│ 阶段数: {{phase_count}} 个                 │
-│ 需求覆盖: {{coverage}}%                    │
-│                                            │
-│ Phase 1: {{name_1}} ({{req_count_1}} 需求) │
-│ Phase 2: {{name_2}} ({{req_count_2}} 需求) │
-│ ...                                        │
-└───────────────────────────────────────────┘
-```
-
-等待用户确认路线图。
+展示路线图摘要（ui-brand 检查点框: 阶段数、需求覆盖率、各阶段名称和需求数）。等待用户确认路线图。
 </step>
 
 <step name="update_state">
@@ -289,27 +227,7 @@ node "$HOME/.claude/wf/bin/wf-tools.cjs" state set \
 <step name="present_result">
 ## 7. 展示新里程碑摘要
 
-```
-╔══════════════════════════════════════════╗
-║  WF · 新里程碑初始化完成                 ║
-╚══════════════════════════════════════════╝
-
-版本: {{version}} {{name}}
-目标: {{goal_count}} 个
-需求: {{req_count}} 个
-阶段: {{phase_count}} 个
-
-┌─ 产出文件 ────────────────────────────────┐
-│ 📄 .planning/REQUIREMENTS.md              │
-│ 📄 .planning/ROADMAP.md                   │
-│ 📄 .planning/STATE.md                     │
-└───────────────────────────────────────────┘
-
-┌─ 下一步 ──────────────────────────────────┐
-│ ▶ /wf-discuss-phase 1  开始讨论第一阶段    │
-│   /wf-autonomous        全自动执行所有阶段  │
-└───────────────────────────────────────────┘
-```
+显示完成横幅（ui-brand 标准横幅: 版本名称、目标数、需求数、阶段数；产出文件框: REQUIREMENTS.md、ROADMAP.md、STATE.md；下一步路由: /wf-discuss-phase 1、/wf-autonomous）。
 </step>
 
 <step name="commit">

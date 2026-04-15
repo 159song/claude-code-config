@@ -26,7 +26,6 @@ allowed-tools:
 <execution_context>
 @$HOME/.claude/wf/workflows/new-milestone.md
 @$HOME/.claude/wf/references/ui-brand.md
-@$HOME/.claude/wf/references/agent-contracts.md
 </execution_context>
 
 <context>
