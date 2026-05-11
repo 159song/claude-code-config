@@ -31,23 +31,58 @@
 <step name="smoke_test" condition="--smoke 或首次 UAT 或 autonomous 模式">
 ## 2. 冒烟测试
 
-自动执行基础检查：
+### 2.0 复用前置验证（P1 优化）
+
+如果 `--smoke` 由 autonomous 调用且同阶段刚跑过 execute-phase，
+execute-phase 末尾已由 `wf-verifier` 产出 VERIFICATION.md（含 4 级验证结果）。
+在时间窗口内可复用，避免重复 build/test：
 
 ```bash
-# 构建检查
-npm run build 2>&1 || echo "BUILD_FAIL"
+CONFIG_JSON=$(node "$HOME/.claude/wf/bin/wf-tools.cjs" config)
+REUSE_WINDOW=$(echo "$CONFIG_JSON" | jq -r '.workflow.verification_reuse_window_sec // 600')
 
-# 测试检查  
-npm test 2>&1 || echo "TEST_FAIL"
+CURRENT_PHASE=$(node "$HOME/.claude/wf/bin/wf-tools.cjs" state get current_phase)
+PADDED=$(printf "%02d" "$CURRENT_PHASE")
+PHASE_DIR=$(ls -d .planning/phases/${PADDED}-* 2>/dev/null | head -1)
+VERIFICATION_FILE="${PHASE_DIR}/VERIFICATION.md"
 
-# 启动检查
+SKIP_BUILD_TEST=false
+if [[ -f "$VERIFICATION_FILE" ]]; then
+  VERIFIED_AT=$(stat -f %m "$VERIFICATION_FILE" 2>/dev/null || stat -c %Y "$VERIFICATION_FILE")
+  AGE=$(( $(date +%s) - VERIFIED_AT ))
+
+  if [[ $AGE -lt $REUSE_WINDOW ]] \
+     && ! grep -q "FAIL" "$VERIFICATION_FILE" \
+     && grep -qE "DATA.FLOWING.*PASS" "$VERIFICATION_FILE"; then
+    echo "✓ Reusing VERIFICATION.md (age: ${AGE}s, window: ${REUSE_WINDOW}s)"
+    SKIP_BUILD_TEST=true
+  fi
+fi
+```
+
+- 命中条件：文件存在 + 在窗口内 + 无 FAIL + DATA-FLOWING 通过
+- 未命中（首次 UAT、手动 `/wf-verify-work --smoke`、autonomous 中断后重启超窗）→ 走下方完整 smoke
+- 手动用户调用 verify-work 时窗口多半已失效，回退完整验证，零行为差异
+
+### 2.1 基础检查
+
+```bash
+if [[ "$SKIP_BUILD_TEST" != "true" ]]; then
+  # 构建检查
+  npm run build 2>&1 || echo "BUILD_FAIL"
+
+  # 测试检查
+  npm test 2>&1 || echo "TEST_FAIL"
+fi
+
+# 启动检查（永远跑 —— 构建通过不等于运行时 OK，且成本低）
 npm run dev &
 sleep 5
 curl -s http://localhost:3000 > /dev/null && echo "SERVER_OK" || echo "SERVER_FAIL"
 kill %1 2>/dev/null
 ```
 
-冒烟测试结果注入到 UAT 状态中。
+冒烟测试结果注入到 UAT 状态中。复用路径仅跳过 build/test，启动检查仍然执行。
 
 > **Agent 调用:** 如需调用 `wf-verifier` agent，按合同格式构造 prompt（见 `wf/references/agent-contracts.md`），
 > 使用 `model: config.agents.models.verifier || "sonnet"`，解析返回的 JSON 完成标记。
