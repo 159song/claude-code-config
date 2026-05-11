@@ -39,13 +39,42 @@
 
 ### 安装
 
+**一行远程安装**（推荐）：
+
 ```bash
-git clone <this-repo> ~/claude-code-config
-cd ~/claude-code-config
-./wf/bin/install.sh
+# 项目级（默认）—— 装到当前项目的 .claude/
+curl -fsSL https://raw.githubusercontent.com/159song/claude-code-config/main/install.sh | bash
+
+# 用户级 —— 装到 $HOME/.claude/（全局可用）
+curl -fsSL https://raw.githubusercontent.com/159song/claude-code-config/main/install.sh | bash -s -- --user
+
+# 预览不写入
+curl -fsSL https://raw.githubusercontent.com/159song/claude-code-config/main/install.sh | bash -s -- --dry-run
 ```
 
-将命令、Agent、Hook、Workflow 和参考文档复制到 `~/.claude/`，并智能合并 `settings.json`（你的现有配置会被保留）。
+**本地 clone 后安装**：
+
+```bash
+git clone https://github.com/159song/claude-code-config.git
+cd claude-code-config
+./install.sh              # 项目级（默认）
+./install.sh --user       # 用户级
+./install.sh --dry-run    # 预览
+./install.sh --uninstall  # 卸载
+```
+
+将命令、Agent、Hook、Workflow 和参考文档复制到目标 `.claude/` 目录，并智能合并 `settings.json`（你的现有配置会被保留）。
+
+| Flag | 作用 |
+|---|---|
+| `--project` (默认) | 装到 `$(pwd)/.claude/`，作用于**当前项目** |
+| `--user` | 装到 `$HOME/.claude/`，作用于**所有项目** |
+| `--force` | 跳过版本检查，强制覆盖 |
+| `--dry-run` | 打印计划但不写入任何文件 |
+| `--uninstall` | 按当前 scope 卸载（保留用户自定义 settings 部分） |
+| `--ref <branch>` | 远程安装时指定分支/tag（默认 `main`） |
+
+> 旧入口 `./wf/bin/install.sh` 仍然可用（默认 **user**）。新入口 `./install.sh` 默认 **project**，契合"试试看"的一键场景。
 
 ### 验证
 
