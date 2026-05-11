@@ -195,7 +195,7 @@ wf-reviewer    读取 ← source files, 写入 → REVIEW.md
            ↓
 ┌────────────────────────────────────────────────────┐
 │                    DISCUSS                          │
-│  产出: CONTEXT.md (决策锁定), DISCUSSION-LOG.md     │
+│  产出: CONTEXT.md（决策锁定 + Discussion Log 附录）  │
 └──────────┬─────────────────────────────────────────┘
            │ /wf-plan-phase N
            ↓
@@ -354,8 +354,7 @@ wf-executor (Agent 内部)
 ├── HANDOFF.json                # 暂停检查点 (临时)
 │
 ├── phase-{N}/                  # 每阶段产物
-│   ├── CONTEXT.md              # 决策记录 (discuss 产出, 锁定)
-│   ├── DISCUSSION-LOG.md       # 讨论过程记录
+│   ├── CONTEXT.md              # 决策记录 + Discussion Log 附录 (discuss 产出, 锁定; P2 合并后单文件)
 │   ├── RESEARCH.md             # 实现调研 (plan 输入)
 │   ├── PLAN.md                 # 任务分解 (plan 产出, 锁定)
 │   ├── PLAN-B.md               # (大项目多文件)
@@ -520,7 +519,7 @@ wf-executor (Agent 内部)
   │   ├─ 读取 ROADMAP + REQUIREMENTS
   │   ├─ 识别灰色地带 → 决策讨论
   │   ├─ (可选) wf-researcher → 深度对比
-  │   └─ 写入 → CONTEXT.md + DISCUSSION-LOG.md
+  │   └─ 写入 → CONTEXT.md（含 Decisions + Discussion Log 附录）
   │
   ├─ /wf-plan-phase N
   │   ├─ 读取 CONTEXT + REQUIREMENTS + ROADMAP

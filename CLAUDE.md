@@ -198,7 +198,7 @@ WF 是一套 Claude Code 个人配置/插件系统，提供结构化项目管理
 - Used by: All layers for policy compliance and template rendering
 ## Data Flow
 - Centralized `.planning/` directory: immutable source of truth for each phase
-- Per-phase subdirectory (`phase-N/`): CONTEXT.md, DISCUSSION-LOG.md, RESEARCH.md, PLAN*.md, SUMMARY*.md, VERIFICATION.md
+- Per-phase subdirectory (`phase-N/`): CONTEXT.md (含 Decisions + Discussion Log 附录，P2 合并后), RESEARCH.md, PLAN*.md, SUMMARY*.md, VERIFICATION.md
 - STATE.md: tracks progress, current phase, completion markers
 - Config.json: workflow behavior toggles (auto vs. manual gates, parallelization settings)
 - Hook runs PostToolUse on Bash|Edit|Write|Agent|Task

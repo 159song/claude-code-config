@@ -71,7 +71,7 @@
        │
        ├─ /wf-discuss-phase N
        │    └─ researcher ×0-N (顾问研究，可选)
-       │       → phase-N/{CONTEXT, DISCUSSION-LOG}.md
+       │       → phase-N/CONTEXT.md（含 Decisions + Discussion Log 附录）
        │
        ├─ /wf-plan-phase N
        │    ├─ researcher ×1  (实现研究，可选)

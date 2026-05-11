@@ -270,11 +270,11 @@ B1: 讨论阶段  /wf-discuss-phase N [--auto|--chain|--batch]
            └──────────┬──────────┘
                       │
                       ▼
-           ┌─────────────────────┐
-           │  保存决策            │
-           │  CONTEXT.md         │
-           │  DISCUSSION-LOG.md  │
-           └──────────┬──────────┘
+           ┌─────────────────────────────┐
+           │  保存决策                    │
+           │  CONTEXT.md                 │
+           │  （含 ## Discussion Log 附录）│
+           └──────────────┬──────────────┘
                       │
                       ▼
               ▶ /wf-plan-phase N  (--chain 自动触发)
@@ -721,15 +721,13 @@ Hooks 运行时机
   .planning/
   ├── ...
   └── phase-1/
-      ├── CONTEXT.md
-      └── DISCUSSION-LOG.md
+      └── CONTEXT.md    # P2 后合并：含 ## Decisions + ## Discussion Log
 
   /wf-plan-phase 1 后:
   .planning/
   ├── ...
   └── phase-1/
       ├── CONTEXT.md
-      ├── DISCUSSION-LOG.md
       ├── RESEARCH.md
       ├── PLAN.md (或 PLAN-A.md, PLAN-B.md)
       └── THREAT-MODEL.md (如安全门禁开启)
