@@ -1,6 +1,6 @@
 ---
-description: WF workflow anti-patterns. Use when about to manually edit STATE.md, nest Task() calls, skip phase verification, batch-modify 10+ files in one commit, ignore context budget warnings, or work outside a tracked WF workflow.
-user-invocable: true
+description: WF workflow anti-patterns reference (manual STATE.md edits, nested Task(), skipping verification, batch 10+ file commits, ignoring context budget). Claude references this before executing sensitive actions in a WF project. Not user-invocable — exposed via wf-troubleshooting when diagnosing issues.
+user-invocable: false
 ---
 
 # WF Anti-Patterns Skill
