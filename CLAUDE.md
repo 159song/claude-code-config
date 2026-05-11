@@ -254,11 +254,13 @@ No project skills found. Add skills to any of: `.claude/skills/`, `.agents/skill
 <!-- WF:skills-start -->
 ## WF Skills (Phase E)
 
-本仓库在 `wf/skills/` 下维护 **20 个 Claude Code 官方 Skill**（不在 GSD 默认扫描路径）。安装 (`./install.sh`) 后落在 `$CLAUDE_DIR/skills/wf-*`，由 Claude Code runtime 自动发现。
+本仓库在 `wf/skills/` 下维护 **22 个 Claude Code 官方 Skill**（不在 GSD 默认扫描路径）。安装 (`./install.sh`) 后落在 `$CLAUDE_DIR/skills/wf-*`，由 Claude Code runtime 自动发现。
 
 - 12 个**开放自动触发**（description 语义匹配）：wf-progress / wf-next / wf-quick / wf-verify-work / wf-propose / wf-apply-change / wf-validate-spec / wf-code-review (+context:fork) / wf-troubleshooting / wf-anti-patterns / wf-4-level-verification / wf-git-conventions
-- 6 个**受控触发**（`disable-model-invocation: true`）：wf-new-project / wf-execute-phase / wf-autonomous / wf-complete-milestone / wf-archive-change / wf-new-milestone
+- 8 个**受控触发**（`disable-model-invocation: true`）：wf-new-project / wf-discuss-phase / wf-plan-phase / wf-execute-phase / wf-autonomous / wf-complete-milestone / wf-archive-change / wf-new-milestone
 - 2 个**后台知识**（`user-invocable: false`）：wf-gates / wf-worktree-lifecycle
+
+**`commands/wf/` 瘦身**：Phase E 完成后保留 4 个纯 command（`do` / `pause` / `resume` / `settings`），其余 18 个命令已由 skill 取代。
 
 完整清单见 `ARCHITECTURE.md` 的 Phase E 章节或 `docs/workflow-diagram.md`。
 <!-- WF:skills-end -->

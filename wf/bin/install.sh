@@ -572,7 +572,6 @@ validate_install() {
     "${CLAUDE_DIR}/hooks/wf-statusline.js"
     "${CLAUDE_DIR}/hooks/wf-prompt-guard.js"
     "${CLAUDE_DIR}/hooks/wf-session-state.js"
-    "${CLAUDE_DIR}/commands/wf/autonomous.md"
     "${CLAUDE_DIR}/commands/wf/do.md"
     "${CLAUDE_DIR}/agents/wf-executor.md"
     "${CLAUDE_DIR}/agents/wf-planner.md"
@@ -597,6 +596,8 @@ validate_install() {
     "${CLAUDE_DIR}/skills/wf-archive-change/SKILL.md"
     "${CLAUDE_DIR}/skills/wf-validate-spec/SKILL.md"
     "${CLAUDE_DIR}/skills/wf-new-milestone/SKILL.md"
+    "${CLAUDE_DIR}/skills/wf-discuss-phase/SKILL.md"
+    "${CLAUDE_DIR}/skills/wf-plan-phase/SKILL.md"
   )
 
   for f in "${critical_files[@]}"; do

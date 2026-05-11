@@ -7,17 +7,17 @@
 
 ```
 ┌── L6 语义触发层 (Phase E) ─────────────────────────────────────┐
-│  wf/skills/wf-*/SKILL.md       20 个 Claude Code 官方 Skill    │
+│  wf/skills/wf-*/SKILL.md       22 个 Claude Code 官方 Skill    │
 │  - 12 开放自动触发（description 驱动）                          │
-│  - 6 受控触发（disable-model-invocation: true）                 │
+│  - 8 受控触发（disable-model-invocation: true）                 │
 │  - 2 后台知识（user-invocable: false）                          │
 │  - 1 个 context: fork（wf-code-review）                         │
 └───────────────────────────────────┬────────────────────────────┘
                                     │ 同名 /wf-xxx 等价触发
 ┌── L5 显式入口 ─────────────────────────────────────────────────┐
-│  commands/wf/*.md              17 个 slash 命令薄 shim         │
-│  /wf-new-project  /wf-autonomous  /wf-propose  /wf-archive ... │
-│  (保留作为向后兼容，与 L6 skill 同名时 skill 优先)              │
+│  commands/wf/*.md              4 个纯 slash 命令                │
+│  /wf-do  /wf-pause  /wf-resume  /wf-settings                    │
+│  （其余 18 个命令已迁至 L6 skill，Phase E 瘦身完成）             │
 └───────────────────────────────────┬────────────────────────────┘
                                     │ @ include
 ┌── L4 工作流主体 ────────────────────▼──────────────────────────┐
@@ -291,7 +291,7 @@ flowchart TD
                        │
         ┌──────────────┴───────────────────┐
         │                                   │
-   开放触发 skill (14)                受控/后台 skill (6)
+   开放触发 skill (12)                受控/后台 skill (10)
         │                                   │
    立即执行 body                  disable: 用户显式时才激活
                                  user-invocable:false: Claude 参考但不出菜单
@@ -305,12 +305,12 @@ flowchart TD
               展开到传统 L4 (workflow) / L3 (agent) / L2 (CLI)
 ```
 
-### 20 个 Skill 分类
+### 22 个 Skill 分类
 
 | 类别 | Skills |
 |---|---|
 | 命令型 · 开放触发 | wf-progress / wf-next / wf-quick / wf-verify-work / wf-propose / wf-apply-change / wf-validate-spec / wf-code-review (+ context: fork) |
-| 命令型 · 受控触发 | wf-new-project / wf-execute-phase / wf-autonomous / wf-complete-milestone / wf-archive-change / wf-new-milestone |
+| 命令型 · 受控触发 | wf-new-project / wf-discuss-phase / wf-plan-phase / wf-execute-phase / wf-autonomous / wf-complete-milestone / wf-archive-change / wf-new-milestone |
 | Reference 型 · 开放触发 | wf-troubleshooting / wf-anti-patterns / wf-4-level-verification / wf-git-conventions |
 | Reference 型 · 后台 | wf-gates / wf-worktree-lifecycle |
 

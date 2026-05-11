@@ -24,7 +24,7 @@
 
 ### v1.0.0 (2026-04-13)
 
-- 核心工作流系统：16 个命令、6 个 Agent、4 个 Hook、15 个 Workflow
+- 核心工作流系统：22 个 Skill + 4 个纯 command、7 个 Agent、4 个 Hook、16 个 Workflow
 - 基于 Wave 的并行执行 + git worktree 隔离
 - 4 级验证模型（EXISTS → SUBSTANTIVE → WIRED → DATA-FLOWING）
 - 自治模式，支持完整阶段链
@@ -267,12 +267,12 @@ CLI 对应：`wf-tools change list/show/validate/archive`。Archive 采用 fail-
 
 WF 全量迁移到 Claude Code 官方 Skill 机制：`.claude/skills/<name>/SKILL.md` 与 `.claude/commands/<name>.md` 等价产生 `/name`，Skill 多出 `description` 驱动的语义触发、`disable-model-invocation` / `paths` / `context: fork` 等能力。
 
-20 个 WF Skill 按触发策略分类：
+22 个 WF Skill 按触发策略分类：
 
 | 触发策略 | skill 数量 | 代表 | 行为 |
 |---|---|---|---|
 | 开放自动触发 | 12 | `wf-progress` / `wf-quick` / `wf-git-conventions` / `wf-code-review` 等 | Claude 读 description 语义匹配后主动调用 |
-| `disable-model-invocation: true` | 6 | `wf-new-project` / `wf-execute-phase` / `wf-autonomous` / `wf-complete-milestone` / `wf-archive-change` / `wf-new-milestone` | 不可逆重大操作，只能用户显式 |
+| `disable-model-invocation: true` | 8 | `wf-new-project` / `wf-discuss-phase` / `wf-plan-phase` / `wf-execute-phase` / `wf-autonomous` / `wf-complete-milestone` / `wf-archive-change` / `wf-new-milestone` | 不可逆重大操作或需显式启动的阶段管道，只能用户显式触发 |
 | `user-invocable: false` | 2 | `wf-gates` / `wf-worktree-lifecycle` | 后台知识，Claude 决策时参考，不出现在 `/` 菜单 |
 
 特殊能力：`wf-code-review` 用 `context: fork + agent: general-purpose`，在 forked subagent 中执行审查，保护主 session context。
@@ -361,7 +361,8 @@ WF 集成了用户全局 `~/.claude/CLAUDE.md` 的 Git 规范并做 WF 特定扩
 ├── CHANGELOG.md                     # 版本历史
 ├── LICENSE                          # Apache 2.0
 │
-├── commands/wf/                     # 16 个用户命令
+├── commands/wf/                     # 4 个纯 command：do / pause / resume / settings
+                                     # （其余 18 个命令已迁至 wf/skills/，Phase E 后）
 │   ├── autonomous.md
 │   ├── do.md
 │   ├── new-project.md
@@ -436,9 +437,9 @@ WF 集成了用户全局 `~/.claude/CLAUDE.md` 的 Git 规范并做 WF 特定扩
 │   │   ├── git-conventions.md       #   Git 分支/commit/worktree 规范（集成全局）
 │   │   └── troubleshooting.md       #   8 个常见场景
 │   │
-│   ├── skills/                      # 20 个 Claude Code Skill（Phase E）
+│   ├── skills/                      # 22 个 Claude Code Skill（Phase E）
 │   │   ├── wf-<name>/SKILL.md       #   frontmatter + @ 引用 workflow/reference
-│   │   └── ...                      #   14 开放触发 / 4 受控 / 2 后台知识
+│   │   └── ...                      #   12 开放触发 / 8 受控 / 2 后台知识
 │   │
 │   └── templates/                   # 9 个项目模板
 │       ├── config.json
@@ -618,7 +619,7 @@ WF 分为 6 层：
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    入口层                                │
-│  commands/wf/ — 16 个斜杠命令、意图路由                  │
+│  commands/wf/ — 4 个纯 command、意图路由；22 skill 覆盖其余 │
 ├─────────────────────────────────────────────────────────┤
 │                   工作流层                               │
 │  wf/workflows/ — 15 个工作流定义、阶段逻辑               │
