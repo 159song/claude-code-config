@@ -23,6 +23,7 @@
 │   │       ├── roadmap.cjs          # 路线图分析
 │   │       ├── session.cjs          # 会话暂停/恢复
 │   │       ├── spec.cjs             # 规格空间（OpenSpec-inspired）解析/校验
+│   │       ├── change.cjs           # 变更提议 + delta 合并（OpenSpec-inspired）
 │   │       ├── state.cjs            # STATE.md 读写
 │   │       ├── utils.cjs            # 通用工具函数
 │   │       ├── validate.cjs         # 输入验证
@@ -62,6 +63,9 @@
 │       ├── state.md                 # 状态文件模板
 │       ├── roadmap.md               # 路线图模板
 │       ├── spec.md                  # 规格模板（Purpose + Requirement + Scenario）
+│       ├── change-proposal.md       # change proposal 正文模板（Phase B）
+│       ├── change-tasks.md          # change 任务清单模板（Phase B）
+│       ├── change-delta.md          # spec delta 模板（ADDED/MODIFIED/REMOVED/RENAMED）
 │       └── requirements.md          # 需求文档模板
 │
 ├── commands/wf/                     # 16 个命令入口（用户通过 /wf-* 调用）
@@ -82,13 +86,14 @@
 │   ├── resume.md                    # /wf-resume
 │   └── settings.md                  # /wf-settings [set key value]
 │
-├── agents/                          # 6 个核心 sub-agent
+├── agents/                          # 7 个核心 sub-agent
 │   ├── wf-planner.md                # 计划生成器 — 任务分解/wave 分组/依赖分析
 │   ├── wf-executor.md               # 任务执行器 — 逐任务执行/原子提交/偏差处理
 │   ├── wf-verifier.md               # 目标验证器 — 4 级验证/需求覆盖/反模式扫描
 │   ├── wf-researcher.md             # 技术研究员 — 技术调研/方案比较/风险分析
 │   ├── wf-roadmapper.md             # 路线图设计 — 阶段划分/需求映射/依赖分析
-│   └── wf-reviewer.md               # 代码审查器 — 逐文件审查/4 维度分析/REVIEW.md
+│   ├── wf-reviewer.md               # 代码审查器 — 逐文件审查/4 维度分析/REVIEW.md
+│   └── wf-proposer.md               # 变更提议 — idea → proposal + delta specs + tasks（Phase B）
 │
 ├── hooks/                           # 4 个 Claude Code hooks + 测试
 │   ├── wf-session-state.js          # SessionStart — 注入项目状态提醒（Node.js）
@@ -869,4 +874,87 @@ WF 现有架构以 **phase-driven**（阶段驱动）为核心：REQUIREMENTS.md
 
 ### 后续 Phase
 
-Phase B 将引入 `changes/` 空间与 `ADDED/MODIFIED/REMOVED/RENAMED Requirements` delta 语法，实现完整的 propose-apply-archive 生命周期。详见 `/Users/zxs/.claude/plans/project-claude-peaceful-bengio.md`。
+Phase B 已实施：引入 `changes/` 空间与 delta 语法，详见下一节。
+
+---
+
+## 变更提议（Phase B — OpenSpec-inspired，可选）
+
+在 Phase A 的规格空间之上引入**变更生命周期**：独立的 change 包作为规格的"提议-应用-归档"单元，多个 change 可并发存在互不冲突，归档时才把增量写进主干 specs/。
+
+### 目录结构
+
+```
+.planning/
+├── specs/<cap>/spec.md             # 主干（Phase A）
+└── changes/                        # 新增（Phase B）
+    ├── <change-id>/                # 活跃变更（kebab-case id）
+    │   ├── proposal.md             # Why + What Changes + Capabilities + Impact
+    │   ├── tasks.md                # 实现任务 checkbox
+    │   ├── design.md               # 可选：技术方案
+    │   └── specs/<cap>/spec.md     # delta：ADDED/MODIFIED/REMOVED/RENAMED Requirements
+    └── archive/
+        └── YYYY-MM-DD-<change-id>/ # 归档后的 change 包（含 delta 历史）
+```
+
+一个 change 可以跨多个 capability（每个 capability 一个 delta 文件）。archive 目录以日期前缀命名避免重名。
+
+### Delta 语法
+
+二级标题必须是以下四个之一（大小写敏感）：
+
+| 操作 | 行为 |
+|---|---|
+| `## ADDED Requirements` | 追加到主 spec 的 `## Requirements` 段末 |
+| `## MODIFIED Requirements` | 按 `### Requirement:` header 匹配，**整块替换**（含全部 scenarios） |
+| `## REMOVED Requirements` | 按 header 删除 |
+| `## RENAMED Requirements` | `- From: <old-name>` 行声明旧名；body 非空时同时替换内容，body 为空时仅改名保留 body |
+
+每个 requirement 内部结构与主干 spec 相同：`### Requirement: <header 稳定 ID>` + `#### Scenario:` + WHEN/THEN/AND 步骤。
+
+### 合并算法（`archiveChange` 的核心）
+
+```
+1. 校验：收集所有 delta 文件
+2. 对每个 (capability, delta) 对：
+   - 读主干 specs/<cap>/spec.md（若不存在则按 ADDED 建新 capability）
+   - splitRequirements 拆成 [{name, block}] 列表
+   - 检查：ADDED 目标必须不存在；MODIFIED/REMOVED/RENAMED.From 必须存在；RENAMED 目标必须不存在
+   - 任一冲突 → 抛错，终止合并（fail-fast，主 specs/ 不动）
+3. 按 MODIFIED → REMOVED → RENAMED → ADDED 顺序应用
+4. 全部成功后：writeFile 到主 specs/ + mv changes/<id>/ → changes/archive/YYYY-MM-DD-<id>/
+```
+
+### CLI 接口
+
+| 命令 | 作用 |
+|---|---|
+| `wf-tools change list [--json]` | 列活跃 changes 和已归档 changes |
+| `wf-tools change show <id>` | 结构化展示某 change（proposal/tasks/design 存在性 + 每个 delta 的计数） |
+| `wf-tools change validate <id>` | 校验 delta 语法 + 与主 spec 的语义一致性 |
+| `wf-tools change archive <id> [--dry-run]` | 合并 + 归档；dry-run 预览不写文件 |
+
+### 命令/工作流入口
+
+- `/wf-propose <idea>` → `wf/workflows/propose.md` → 调用 `wf-proposer` agent
+- `/wf-validate-spec <id\|--all>` → 直接走 CLI（spec 或 change validate 自动识别）
+- `/wf-apply-change <id>` → 读 tasks.md，委托 `wf-executor` 实现代码
+- `/wf-archive-change <id>` → 直接走 CLI，建议先 `--dry-run`
+
+### 与阶段驱动的正交性
+
+变更驱动与阶段驱动并存不冲突：
+- change 描述**规格层**变更（行为/契约），phase 描述**实现层**组织（wave/worktree/commit）
+- 一个 change apply 时可以复用现有 phase，也可以单独走 executor 一次性完成
+- milestone 归档机制保持不变；建议将来 Phase C 把 `specs/` 纳入 milestone 快照
+
+### 单元测试
+
+`wf/bin/lib/change.test.cjs` 覆盖 33 个用例：parseDelta 四种操作、validateDelta 冲突检测、applyDeltaToSpec 的成功路径 + 所有错误路径（ADDED 重名 / MODIFIED 目标缺失 / REMOVED 目标缺失 / RENAMED 冲突）、listChanges/showChange/validateChange/archiveChange（含 dry-run、新 capability、merge 冲突场景）。
+
+### 负面清单（明确**不借鉴**的 OpenSpec 元素）
+
+- `/opsx:*` slash 前缀 → 坚持 `wf-` 前缀
+- `openspec.yaml` → 复用 `.planning/config.json`
+- `openspec workspace` 多仓协调 → 非 WF 单仓定位
+- "fluid not rigid" 去门禁哲学 → WF 的 4 级验证/门禁保留，只把规格层做成 fluid
