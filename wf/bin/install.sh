@@ -592,6 +592,11 @@ validate_install() {
     "${CLAUDE_DIR}/skills/wf-git-conventions/SKILL.md"
     "${CLAUDE_DIR}/skills/wf-gates/SKILL.md"
     "${CLAUDE_DIR}/skills/wf-worktree-lifecycle/SKILL.md"
+    "${CLAUDE_DIR}/skills/wf-code-review/SKILL.md"
+    "${CLAUDE_DIR}/skills/wf-apply-change/SKILL.md"
+    "${CLAUDE_DIR}/skills/wf-archive-change/SKILL.md"
+    "${CLAUDE_DIR}/skills/wf-validate-spec/SKILL.md"
+    "${CLAUDE_DIR}/skills/wf-new-milestone/SKILL.md"
   )
 
   for f in "${critical_files[@]}"; do
