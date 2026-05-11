@@ -1,6 +1,6 @@
 ---
-description: Verify implementation against phase or feature goals using WF's 4-level model. Use when validating that code changes achieve stated requirements, when reviewing whether a phase is truly complete, when checking if a new feature is end-to-end functional (not just present), or before marking a task as done.
-user-invocable: true
+description: WF 4-level verification model (EXISTS / SUBSTANTIVE / WIRED / DATA-FLOWING). Claude references this when evaluating phase completion or feature readiness during verify-work / execute-phase. Not user-invocable — use /wf-verify-work instead.
+user-invocable: false
 ---
 
 # WF 4-Level Verification Skill
