@@ -144,9 +144,26 @@ Skill(discuss-phase, { phase: N })
 
 更新 CONTINUATION.md：`step: plan`
 
+**默认：附加 `--skip-research`（P1 优化）**
+
+autonomous 模式下 new-project 已跑过 4 路并行 research，phase 级 research 大多重复全局调研。默认传 `--skip-research`，除非 config 显式要求：
+
+```bash
+CONFIG_JSON=$(node "$HOME/.claude/wf/bin/wf-tools.cjs" config)
+RESEARCH_IN_AUTONOMOUS=$(echo "$CONFIG_JSON" | jq -r '.workflow.research_in_autonomous // false')
+
+if [[ "$RESEARCH_IN_AUTONOMOUS" == "true" ]]; then
+  PLAN_FLAGS=""
+else
+  PLAN_FLAGS="--skip-research"
+fi
 ```
-Skill(plan-phase, { phase: N })
+
 ```
+Skill(plan-phase, { phase: N, flags: PLAN_FLAGS })
+```
+
+用户显式调 `/wf-plan-phase N` 时不受影响（默认仍跑 research）。
 
 计划质量门禁由 plan-phase 工作流内部处理（最多 3 次修订循环，参见 gates.md）。完成后自动继续。
 
