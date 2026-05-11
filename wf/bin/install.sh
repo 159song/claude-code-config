@@ -279,9 +279,8 @@ TOTAL_FILES=0
 copy_files() {
   local file_count=0
 
-  # 创建目录结构
+  # 创建目录结构（Phase E 完成：commands/wf 已全量迁至 skills/）
   local dirs=(
-    "${CLAUDE_DIR}/commands/wf"
     "${CLAUDE_DIR}/agents"
     "${CLAUDE_DIR}/hooks"
     "${CLAUDE_DIR}/skills"
@@ -299,20 +298,23 @@ copy_files() {
     fi
   done
 
-  # --- 命令文件 ---
-  log_info "复制命令文件..."
-  local cmd_count=0
-  for f in "${WF_SOURCE}/commands/wf/"*.md; do
-    [[ -f "$f" ]] || continue
-    if $DRY_RUN; then
-      log_dim "[dry-run] $(basename "$f")"
-    else
-      cp "$f" "${CLAUDE_DIR}/commands/wf/"
-    fi
-    cmd_count=$((cmd_count + 1))
-  done
-  log_dim "${cmd_count} 个命令"
-  file_count=$((file_count + cmd_count))
+  # --- 命令文件（Phase E 完成：已全量迁至 skills/，本段保留仅为兼容历史 repo 意外留下的 commands/wf/） ---
+  if [[ -d "${WF_SOURCE}/commands/wf" ]] && ls "${WF_SOURCE}/commands/wf/"*.md >/dev/null 2>&1; then
+    log_info "复制遗留命令文件..."
+    local cmd_count=0
+    mkdir -p "${CLAUDE_DIR}/commands/wf"
+    for f in "${WF_SOURCE}/commands/wf/"*.md; do
+      [[ -f "$f" ]] || continue
+      if $DRY_RUN; then
+        log_dim "[dry-run] $(basename "$f")"
+      else
+        cp "$f" "${CLAUDE_DIR}/commands/wf/"
+      fi
+      cmd_count=$((cmd_count + 1))
+    done
+    log_dim "${cmd_count} 个遗留命令"
+    file_count=$((file_count + cmd_count))
+  fi
 
   # --- Agent 定义 ---
   log_info "复制 Agent 定义..."
@@ -572,7 +574,7 @@ validate_install() {
     "${CLAUDE_DIR}/hooks/wf-statusline.js"
     "${CLAUDE_DIR}/hooks/wf-prompt-guard.js"
     "${CLAUDE_DIR}/hooks/wf-session-state.js"
-    "${CLAUDE_DIR}/commands/wf/do.md"
+    "${CLAUDE_DIR}/skills/wf-do/SKILL.md"
     "${CLAUDE_DIR}/agents/wf-executor.md"
     "${CLAUDE_DIR}/agents/wf-planner.md"
     "${CLAUDE_DIR}/wf/workflows/execute-phase.md"
