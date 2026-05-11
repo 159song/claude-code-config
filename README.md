@@ -24,7 +24,7 @@
 
 ### v1.0.0 (2026-04-13)
 
-- 核心工作流系统：26 个 Skill、7 个 Agent、4 个 Hook、16 个 Workflow（commands/wf/ 已全量迁至 skills/）
+- 核心工作流系统：25 个 Skill、7 个 Agent、4 个 Hook、16 个 Workflow（commands/wf/ 已全量迁至 skills/；P0 收敛：wf-next + wf-progress → wf-status）
 - 基于 Wave 的并行执行 + git worktree 隔离
 - 4 级验证模型（EXISTS → SUBSTANTIVE → WIRED → DATA-FLOWING）
 - 自治模式，支持完整阶段链
@@ -188,7 +188,7 @@ WF 不只是检查"任务跑了没？"——而是检查"目标达成了没？"
 |------|------|
 | `/wf-autonomous` | 端到端执行所有剩余阶段（主入口） |
 | `/wf-do "<描述>"` | 自然语言意图 → 最佳匹配命令 |
-| `/wf-next` | 智能状态检测 → 自动路由到正确步骤 |
+| `/wf-status --auto-advance` | 智能状态检测 → 自动路由到正确步骤 |
 | `/wf-quick "<描述>"` | 阶段体系外的快速任务 |
 
 ### 项目生命周期
@@ -205,7 +205,7 @@ WF 不只是检查"任务跑了没？"——而是检查"目标达成了没？"
 |------|------|
 | `/wf-pause` | 保存检查点（`HANDOFF.json`） |
 | `/wf-resume` | 从检查点恢复 + 自动路由 |
-| `/wf-progress` | 进度面板 + 智能路由建议 |
+| `/wf-status` | 进度面板 + 智能路由建议（"下一步"触发词下自动推进） |
 
 ### 工具
 
@@ -267,19 +267,20 @@ CLI 对应：`wf-tools change list/show/validate/archive`。Archive 采用 fail-
 
 WF 全量迁移到 Claude Code 官方 Skill 机制：`.claude/skills/<name>/SKILL.md` 与 `.claude/commands/<name>.md` 等价产生 `/name`，Skill 多出 `description` 驱动的语义触发、`disable-model-invocation` / `paths` / `context: fork` 等能力。
 
-26 个 WF Skill 按触发策略分类：
+25 个 WF Skill 按触发策略分类（P0 收敛后：26 → 25）：
 
 | 触发策略 | skill 数量 | 代表 | 行为 |
 |---|---|---|---|
-| 开放自动触发 | 12 | `wf-progress` / `wf-quick` / `wf-git-conventions` / `wf-code-review` 等 | Claude 读 description 语义匹配后主动调用 |
+| 开放自动触发 | 9 | `wf-status` / `wf-quick` / `wf-git-conventions` / `wf-code-review` / `wf-verify-work` / `wf-propose` / `wf-apply-change` / `wf-validate-spec` / `wf-troubleshooting` | Claude 读 description 语义匹配后主动调用 |
 | `disable-model-invocation: true` | 12 | `wf-new-project` / `wf-discuss-phase` / `wf-plan-phase` / `wf-execute-phase` / `wf-autonomous` / `wf-complete-milestone` / `wf-archive-change` / `wf-new-milestone` / `wf-do` / `wf-pause` / `wf-resume` / `wf-settings` | 不可逆操作、阶段管道、会话生命周期、敏感配置，只能用户显式触发 |
-| `user-invocable: false` | 2 | `wf-gates` / `wf-worktree-lifecycle` | 后台知识，Claude 决策时参考，不出现在 `/` 菜单 |
+| `user-invocable: false` | 4 | `wf-gates` / `wf-worktree-lifecycle` / `wf-4-level-verification` / `wf-anti-patterns` | 后台知识，Claude 决策时参考，不出现在 `/` 菜单 |
 
 特殊能力：`wf-code-review` 用 `context: fork + agent: general-purpose`，在 forked subagent 中执行审查，保护主 session context。
 
 **用户视角的变化**：
-- 问"项目进度怎么样" → Claude 自动触发 `wf-progress`
-- 写 git commit → Claude 自动加载 `wf-git-conventions` 的规则
+- 问"项目进度怎么样" → Claude 自动触发 `wf-status`（查询模式）
+- 说"下一步做什么" → Claude 自动触发 `wf-status` 并进入推进模式
+- 写 git commit（仅 WF 项目内，有 `.planning/` 目录）→ Claude 自动加载 `wf-git-conventions` 的规则
 - 说"改个 bug" → Claude 自动加载 `wf-quick` 管道
 - 显式 `/wf-new-project` / `/wf-autonomous` 等行为与今日完全一致（向后兼容）
 
@@ -436,9 +437,9 @@ WF 集成了用户全局 `~/.claude/CLAUDE.md` 的 Git 规范并做 WF 特定扩
 │   │   ├── git-conventions.md       #   Git 分支/commit/worktree 规范（集成全局）
 │   │   └── troubleshooting.md       #   8 个常见场景
 │   │
-│   ├── skills/                      # 26 个 Claude Code Skill（Phase E 完整）
+│   ├── skills/                      # 25 个 Claude Code Skill（Phase E + P0 收敛）
 │   │   ├── wf-<name>/SKILL.md       #   frontmatter + @ 引用 workflow/reference
-│   │   └── ...                      #   12 开放触发 / 12 受控 / 2 后台知识
+│   │   └── ...                      #   9 开放触发 / 12 受控 / 4 后台知识
 │   │
 │   └── templates/                   # 9 个项目模板
 │       ├── config.json
@@ -618,7 +619,7 @@ WF 分为 6 层：
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    入口层                                │
-│  commands/wf/ — 已删除；全部功能由 26 个 skill 覆盖         │
+│  commands/wf/ — 已删除；全部功能由 25 个 skill 覆盖         │
 ├─────────────────────────────────────────────────────────┤
 │                   工作流层                               │
 │  wf/workflows/ — 15 个工作流定义、阶段逻辑               │
