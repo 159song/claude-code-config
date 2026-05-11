@@ -64,6 +64,9 @@
 3. **`--wave` 与 `--interactive` 互斥**（execute-phase）
 4. `autonomous` 模式下调用 `verify-work` 时**强制加 `--smoke`**，禁止对话循环
 5. `autonomous` 未传 `--interactive` 时，discuss-phase 自动 `--auto --batch`
+6. **（P1）`autonomous` 调 `plan-phase` 默认附加 `--skip-research`**，由 `config.workflow.research_in_autonomous=true` 取消
+7. **（P1）`autonomous` Phase 1 冷启动**（PROJECT.md < 1h、无 CONTEXT.md、未传 `--interactive`）跳过 discuss-phase，由 `config.workflow.phase1_cold_start_window_sec` 调窗
+8. **（P1）`autonomous` 调 `verify-work --smoke`** 在 10 分钟内命中 VERIFICATION.md PASS 时跳过 build/test，由 `config.workflow.verification_reuse_window_sec` 调窗
 
 ## 无 flag 约定
 
