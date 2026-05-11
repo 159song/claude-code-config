@@ -589,6 +589,9 @@ validate_install() {
     "${CLAUDE_DIR}/skills/wf-new-project/SKILL.md"
     "${CLAUDE_DIR}/skills/wf-execute-phase/SKILL.md"
     "${CLAUDE_DIR}/skills/wf-autonomous/SKILL.md"
+    "${CLAUDE_DIR}/skills/wf-git-conventions/SKILL.md"
+    "${CLAUDE_DIR}/skills/wf-gates/SKILL.md"
+    "${CLAUDE_DIR}/skills/wf-worktree-lifecycle/SKILL.md"
   )
 
   for f in "${critical_files[@]}"; do

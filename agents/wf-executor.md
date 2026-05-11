@@ -44,7 +44,7 @@ PLAN.md 是你的执行合同。逐个任务执行，不跳过，不重排。
 
 ### 2. 原子提交
 
-每完成一个任务，立即 git commit，遵守 [`wf/references/git-conventions.md`](../wf/references/git-conventions.md) 的 scope 约定：
+每完成一个任务，立即 git commit。遵守 **wf-git-conventions skill** 的 scope 约定（当 Claude 主 session 中，该 skill 会在 git 操作前自动激活；在 sub-agent 中直接查阅 `$HOME/.claude/wf/references/git-conventions.md`）：
 
 ```bash
 git add {{files}}
@@ -60,7 +60,7 @@ git commit -m "fix: {{task_description}}"  # 或无 scope 的其它 type
 
 **如何判断当前调用上下文**：调用方会在 prompt 中显式声明 `phase` / `change_id` / `task_source`；若未声明，默认按 phase 处理（向后兼容）。
 
-commit message 必须使用 Conventional Commits 格式（见 git-conventions.md §3）：
+commit message 必须使用 Conventional Commits 格式（完整规范见 wf-git-conventions skill 或 `wf/references/git-conventions.md` §3）：
 - Type：`feat | fix | docs | style | refactor | perf | test | chore`
 - Scope：`phase-<N>` / `change-<id>` / 或省略（quick 默认）
 - **禁止** `--amend` 和 `--no-verify`
