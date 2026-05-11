@@ -3,8 +3,7 @@
 识别需要人类判断的决策点，进行结构化讨论，记录结论。
 
 产出文件：
-- `.planning/phase-{N}/CONTEXT.md` — 阶段上下文和决策记录
-- `.planning/phase-{N}/DISCUSSION-LOG.md` — 讨论过程记录
+- `.planning/phase-{N}/CONTEXT.md` — 阶段上下文 + 决策记录 + 完整讨论过程（合并文件，含 `## Decisions` 与 `## Discussion Log` 两段）
 
 > **参考:** Agent 合同定义见 `wf/references/agent-contracts.md`
 </purpose>
@@ -145,7 +144,7 @@ Researcher 返回后，提取 JSON 完成标记：
 <step name="save_context">
 ## 6. 保存阶段上下文
 
-生成 `.planning/phase-{N}/CONTEXT.md`：
+生成 **单一** `.planning/phase-{N}/CONTEXT.md`（合并原 CONTEXT + DISCUSSION-LOG，P2 精简后）：
 
 ```markdown
 # Phase {N}: {{name}} — 上下文
@@ -165,9 +164,26 @@ Researcher 返回后，提取 JSON 完成标记：
 
 ## 依赖关系
 {{dependencies}}
+
+---
+
+## Discussion Log
+
+<!-- 完整讨论过程记录。下游 workflow（plan-phase / execute-phase / verify-work）
+     不读取此段，仅供人类回溯决策由来。折叠附录形式，可以很长。 -->
+
+### 灰色地带识别
+{{识别到的灰色地带列表、为何值得讨论}}
+
+### 讨论轨迹
+{{逐决策点的选项列举、权衡讨论、顾问研究结论}}
+
+### 被拒方案
+{{讨论中被排除的方案及排除理由，为未来回溯提供线索}}
 ```
 
-生成 `.planning/phase-{N}/DISCUSSION-LOG.md` 记录完整讨论过程。
+> **P2 变更**：原 DISCUSSION-LOG.md 独立文件已合并为本文件的 `## Discussion Log` 附录。
+> 历史 phase 目录若存在独立 DISCUSSION-LOG.md 不迁移，保留不动。
 
 提交到 git：
 ```bash
@@ -193,7 +209,7 @@ git commit -m "docs(phase-{N}): complete discussion — {{decisions_count}} deci
 <success_criteria>
 - [ ] 所有灰色地带已识别并处理
 - [ ] CONTEXT.md 包含所有决策和原因
-- [ ] DISCUSSION-LOG.md 记录完整过程
+- [ ] CONTEXT.md 的 `## Discussion Log` 附录记录完整过程
 - [ ] 已有代码的技术选择被正确采纳
 - [ ] 文件已提交到 git
 </success_criteria>

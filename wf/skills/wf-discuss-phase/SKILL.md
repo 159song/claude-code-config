@@ -13,7 +13,7 @@ allowed-tools: Read Write Bash Glob Grep Task AskUserQuestion
 
 阶段: $ARGUMENTS
 
-按 workflow 端到端执行：识别灰色地带 → 展示选项 → 记录决策 → 产出 CONTEXT.md + DISCUSSION-LOG.md。
+按 workflow 端到端执行：识别灰色地带 → 展示选项 → 记录决策 → 产出 CONTEXT.md（含 `## Decisions` 与 `## Discussion Log` 两段，P2 合并后单文件）。
 
 可用 flag：
 - `--auto` — 自动模式，AI 自行决策不中断
