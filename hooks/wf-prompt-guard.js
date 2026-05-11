@@ -4,6 +4,12 @@
 // 防御性措施：在注入指令进入 agent context 之前发现它们。
 //
 // 仅 advisory（不阻塞），避免误报导致死锁。
+//
+// 覆盖范围（路径前缀匹配 .planning/）：
+//   - 传统：PROJECT.md、REQUIREMENTS.md、ROADMAP.md、STATE.md、phase-N/*
+//   - Phase A：specs/<capability>/spec.md
+//   - Phase B：changes/<id>/{proposal,tasks,design}.md 及 changes/<id>/specs/<cap>/spec.md
+// .md 文件走 REDUCED_SEVERITY 路径，合理减少讨论安全话题时的误报噪音。
 
 const fs = require('fs');
 const path = require('path');

@@ -101,6 +101,29 @@ function archiveMilestone(cwd, version) {
     }
   }
 
+  // 复制 specs/ 目录（Phase A 规格空间的历史快照）
+  const specsDir = path.join(planningDir, 'specs');
+  if (fs.existsSync(specsDir)) {
+    filesCopied += copyDirRecursive(specsDir, path.join(archiveDir, 'specs'));
+  }
+
+  // 复制 changes/archive/ 目录（Phase B 已归档变更的历史，不含活跃 changes/）
+  const changesArchiveDir = path.join(planningDir, 'changes', 'archive');
+  if (fs.existsSync(changesArchiveDir)) {
+    filesCopied += copyDirRecursive(changesArchiveDir, path.join(archiveDir, 'changes-archive'));
+  }
+
+  // 告警：存在活跃（未归档）changes/<id>/ 时，提醒里程碑完成前最好先 apply/archive
+  const changesDir = path.join(planningDir, 'changes');
+  if (fs.existsSync(changesDir)) {
+    const activeChanges = fs.readdirSync(changesDir, { withFileTypes: true })
+      .filter(e => e.isDirectory() && e.name !== 'archive')
+      .map(e => e.name);
+    if (activeChanges.length > 0) {
+      warnings.push(`active (unarchived) changes present: ${activeChanges.join(', ')} — consider archiving them before milestone completion`);
+    }
+  }
+
   return {
     success: true,
     archive_dir: archiveDir,

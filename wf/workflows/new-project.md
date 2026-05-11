@@ -8,6 +8,7 @@
 - `.planning/REQUIREMENTS.md` — 需求文档
 - `.planning/ROADMAP.md` — 阶段路线图
 - `.planning/STATE.md` — 项目状态记忆
+- `.planning/specs/<capability>/spec.md` — 初始规格（仅当 `config.spec.enabled = true`，Phase A）
 
 完成后运行: `/wf-discuss-phase 1` 或 `/wf-autonomous`
 
@@ -181,6 +182,12 @@ Roadmapper 返回后，提取 JSON 完成标记：
 ```
 
 如果 `gates.confirm_roadmap` 为 true，展示路线图让用户确认。
+
+**Phase A 规格空间集成（当 `config.spec.enabled = true`）：**
+
+`wf-roadmapper` 在生成 ROADMAP.md 之后会按 agent 指令（见 `agents/wf-roadmapper.md`）额外产出初始 `.planning/specs/<capability>/spec.md` 骨架：按业务域 kebab-case 拆分，每个 FR 映射为 `### Requirement:` + 至少一个 `#### Scenario:`（WHEN/THEN）。完成后 roadmapper 自行跑 `wf-tools spec validate --all`；若有 `level: error`，视作 failed 并由 orchestrator 重试一次。
+
+REQUIREMENTS.md 保留为**跨 capability 的需求索引**；specs/ 是**按 capability 分治的行为契约**。两者并存不冲突：前者给人类一览无余，后者给 agent/工具机器可校验。
 </step>
 
 <step name="initialize_state">
@@ -218,4 +225,5 @@ git commit -m "chore(planning): initialize project — {{project_name}}"
 - [ ] `.planning/ROADMAP.md` 包含合理的阶段划分
 - [ ] `.planning/STATE.md` 初始化正确
 - [ ] 所有文件已提交到 git
+- [ ] 若 `spec.enabled = true`：`.planning/specs/<cap>/spec.md` 均已生成且 `wf-tools spec validate --all` 返回 `valid: true`
 </success_criteria>

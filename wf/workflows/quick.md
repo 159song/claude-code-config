@@ -13,6 +13,8 @@ bug 修复、小功能、配置调整、文档更新等。
 - `--validate` — 执行后进行验证。
 - `--discuss` — 先讨论再执行。
 - `--research` — 先研究再执行。
+- `--spec` — 规格级短链路。走 propose → validate → apply → archive，绕过 PLAN.md。
+  需 `config.spec.enabled = true`。适用于"改变系统已记录的行为契约"的小任务。
 </flags>
 
 <process>
@@ -34,6 +36,36 @@ bug 修复、小功能、配置调整、文档更新等。
 ```
 
 如果复杂度评估为 "large"，建议使用正式的阶段流程。
+</step>
+
+<step name="spec_shortcut" condition="--spec">
+## 1a. 规格级短链路（仅 --spec）
+
+当用户显式使用 `--spec` 或任务明显涉及"系统已记录的行为契约"（如已存在 specs/<cap>/spec.md 里的 requirement 需要扩展/修改/删除）时，走 propose-apply-archive 短链路而非传统 PLAN.md 路径。
+
+### 前置检查
+
+```bash
+node $HOME/.claude/wf/bin/wf-tools.cjs config get spec.enabled
+```
+
+- 若 `false` 或缺失：告知用户"规格空间未启用"，建议 `/wf-settings set spec.enabled true` 或移除 `--spec`
+- 若用户不想启用，回落到 `--full` 或默认路径
+
+### 执行
+
+1. 推断 `change_id`（kebab-case，前缀推荐 `fix-` / `add-` / `refactor-`）
+2. 委托 `wf-proposer` 产出 `.planning/changes/<id>/{proposal,tasks,specs/<cap>/spec.md}`
+3. `wf-tools change validate <id>` 通过后，委托 `wf-executor` 按 tasks.md 实现代码
+4. 实现完成后 `wf-tools change archive <id> --dry-run` 预览，用户确认后真正 archive
+
+### 成功判据
+
+- `wf-tools change validate <id>` → `valid: true`
+- 实现代码通过验证（构建/测试）
+- `wf-tools change archive <id>` → `ok: true`，主 specs/ 已更新，change 目录已移至 archive/
+
+跳过本文档后续 step（plan_and_execute / verify / complete），走独立的规格短链路收尾。
 </step>
 
 <step name="research" condition="--research 或 --full">

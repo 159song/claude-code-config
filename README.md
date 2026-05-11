@@ -216,6 +216,14 @@ Delta 语法（二级标题）：
 
 CLI 对应：`wf-tools change list/show/validate/archive`。Archive 采用 fail-fast 语义：目标不存在、ADDED 重名、RENAMED 冲突均拒绝写入主 spec，保证主干始终一致。
 
+### 深度整合（Phase C）
+
+- `/wf-new-project` 在 `spec.enabled = true` 时同步生成初始 `specs/<capability>/spec.md`
+- `/wf-new-milestone` reset 时**保留** specs/ 和活跃 changes/（规格跨里程碑存活）
+- `/wf-complete-milestone` 的归档同时捕获 `specs/`（主干快照）和 `changes/archive/`（历史变更），存在活跃 change 时以 warning 提示
+- `/wf-quick --spec <任务>` 走规格级短链路：propose → validate → apply → archive，绕过 PLAN.md
+- `wf-prompt-guard` 自动覆盖 `specs/` 和 `changes/`（路径前缀匹配 `.planning/`）
+
 ---
 
 ## Agent

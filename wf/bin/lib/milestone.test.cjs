@@ -255,3 +255,84 @@ test('run reset subcommand outputs JSON result', () => {
   assert.strictEqual(output.success, true);
   cleanTmp(tmpDir);
 });
+
+// ============================================================
+// Phase C: specs/ and changes/ archive behavior
+// ============================================================
+
+test('archiveMilestone copies specs/ directory into archive', () => {
+  const tmpDir = makeTmp();
+  try {
+    const specsDir = path.join(tmpDir, '.planning', 'specs', 'auth');
+    fs.mkdirSync(specsDir, { recursive: true });
+    fs.writeFileSync(path.join(specsDir, 'spec.md'), '# Auth\n## Purpose\nx\n## Requirements\n### Requirement: R\nbody\n#### Scenario: s\n- WHEN x\n- THEN y\n', 'utf8');
+
+    const result = milestone.archiveMilestone(tmpDir, 'v1.0');
+    assert.strictEqual(result.success, true);
+    const archivedSpec = path.join(tmpDir, '.planning', 'milestones', 'v1.0', 'specs', 'auth', 'spec.md');
+    assert.ok(fs.existsSync(archivedSpec), 'specs/ should be copied into archive');
+    assert.ok(fs.readFileSync(archivedSpec, 'utf8').includes('### Requirement: R'));
+  } finally {
+    cleanTmp(tmpDir);
+  }
+});
+
+test('archiveMilestone copies changes/archive/ into archive/changes-archive/', () => {
+  const tmpDir = makeTmp();
+  try {
+    const archivedChange = path.join(tmpDir, '.planning', 'changes', 'archive', '2026-01-01-past-change');
+    fs.mkdirSync(archivedChange, { recursive: true });
+    fs.writeFileSync(path.join(archivedChange, 'proposal.md'), '# p', 'utf8');
+
+    const result = milestone.archiveMilestone(tmpDir, 'v1.0');
+    assert.strictEqual(result.success, true);
+    const snapshotted = path.join(tmpDir, '.planning', 'milestones', 'v1.0', 'changes-archive', '2026-01-01-past-change', 'proposal.md');
+    assert.ok(fs.existsSync(snapshotted), 'changes/archive/ should be snapshotted into milestone');
+  } finally {
+    cleanTmp(tmpDir);
+  }
+});
+
+test('archiveMilestone warns when active (unarchived) changes exist', () => {
+  const tmpDir = makeTmp();
+  try {
+    const activeChange = path.join(tmpDir, '.planning', 'changes', 'add-thing');
+    fs.mkdirSync(activeChange, { recursive: true });
+    fs.writeFileSync(path.join(activeChange, 'proposal.md'), '# p', 'utf8');
+
+    const result = milestone.archiveMilestone(tmpDir, 'v1.0');
+    assert.strictEqual(result.success, true);
+    assert.ok(result.warnings.some(w => w.includes('active') && w.includes('add-thing')),
+      'should warn about active change');
+  } finally {
+    cleanTmp(tmpDir);
+  }
+});
+
+test('archiveMilestone does NOT warn about archive/ subdir masquerading as active change', () => {
+  const tmpDir = makeTmp();
+  try {
+    const archivedOnly = path.join(tmpDir, '.planning', 'changes', 'archive', '2026-01-01-x');
+    fs.mkdirSync(archivedOnly, { recursive: true });
+
+    const result = milestone.archiveMilestone(tmpDir, 'v1.0');
+    assert.ok(!result.warnings.some(w => w.includes('active')),
+      'archive/ subdir should not count as active change');
+  } finally {
+    cleanTmp(tmpDir);
+  }
+});
+
+test('resetForNewMilestone preserves specs/ (规格跨里程碑保留)', () => {
+  const tmpDir = makeTmp();
+  try {
+    const specPath = path.join(tmpDir, '.planning', 'specs', 'auth', 'spec.md');
+    fs.mkdirSync(path.dirname(specPath), { recursive: true });
+    fs.writeFileSync(specPath, '# Auth\n## Purpose\nx\n', 'utf8');
+
+    milestone.resetForNewMilestone(tmpDir);
+    assert.ok(fs.existsSync(specPath), 'specs/ should survive milestone reset');
+  } finally {
+    cleanTmp(tmpDir);
+  }
+});
