@@ -69,7 +69,9 @@ if $SHOW_HELP; then
   exit 0
 fi
 
-FORWARD_ARGS=("--${SCOPE}" "${FORWARD_ARGS[@]}")
+# 兼容 set -u + macOS Bash 3.2：空数组展开 "${arr[@]}" 会触发 unbound variable，
+# 用 ${arr[@]+"${arr[@]}"} 惯用法安全展开
+FORWARD_ARGS=("--${SCOPE}" ${FORWARD_ARGS[@]+"${FORWARD_ARGS[@]}"})
 
 # ─── 运行模式检测 ──────────────────────────────────
 #
