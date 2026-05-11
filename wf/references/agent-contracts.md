@@ -2,7 +2,25 @@
 
 > 定义 WF 系统中所有 agent 类型的合同摘要索引。工作流在调用 Agent() 前应参考此文档了解完成标记格式，各 agent 的详细输入/输出合同见对应 agent 文件。
 
-> 工作流文件中的 Agent() / Skill() 记号是伪代码，描述 Claude 应如何调用 sub-agent，非可执行 JavaScript。
+## 术语区分：两种 "Skill"（Phase E 澄清）
+
+自 Phase E 将 WF 全量迁移到 Claude Code 官方 Skill 机制后，WF 里出现了**两种** "Skill" 表述，务必区分：
+
+| 概念 | 位置 | 本质 | 调用方 |
+|---|---|---|---|
+| **WF 伪代码 `Skill(name, args)`** | `wf/workflows/*.md` 内文 | 描述"Claude 应如何调用某个子流程"的 LLM 指令，非可执行 JavaScript。相当于伪代码注释。 | Claude 解读 workflow 时 |
+| **Claude Code 真 Skill** | `wf/skills/<name>/SKILL.md` | Claude Code 官方机制：带 frontmatter（description / `disable-model-invocation` / `context: fork` 等）的技能包，由 Claude Code runtime 发现和激活。 | Claude Code runtime（语义匹配 description）或用户 `/skill-name` |
+
+**历史位置**：Phase A-D 之前，workflow 里的 `Skill(xxx)` 仅是 WF 自创术语。现 WF 已提供 20 个真 Skill（见 `wf/skills/`），但**未改写** workflow 里的 `Skill()` 伪代码，仍保留其原意——"Claude 在执行 workflow 时应展开另一个 workflow 或调用另一个命令"。
+
+**规则**：
+- workflow 文件中出现 `Skill(discuss-phase, { phase })` → 这是伪代码，Claude 应理解为"执行 discuss-phase workflow"
+- SKILL.md 中的 frontmatter / @ 引用 → 这是 Claude Code 真 Skill 的定义
+- 两者互不冲突：真 Skill 的 body 可以 `@` 引用 workflow，workflow 内的伪代码仍可引用另一个 workflow
+
+---
+
+## Agent 摘要
 
 ## Agent 摘要
 
@@ -14,6 +32,7 @@
 | wf-researcher | 技术调研、实现方案研究和领域知识收集 | `@agents/wf-researcher.md` |
 | wf-roadmapper | 基于项目上下文和需求文档生成阶段路线图 | `@agents/wf-roadmapper.md` |
 | wf-reviewer | 代码审查和质量检查 | `@agents/wf-reviewer.md` |
+| wf-proposer | 把 idea 转为 change proposal（Phase B）含 specs delta + tasks | `@agents/wf-proposer.md` |
 
 ## 完成标记格式（Single Source of Truth）
 

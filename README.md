@@ -263,6 +263,26 @@ CLI 对应：`wf-tools change list/show/validate/archive`。Archive 采用 fail-
 | 稳定 requirement ID | 在 requirement body 加 `<!-- req-id: STABLE-ID -->`；MODIFIED/REMOVED/RENAMED 按 id 优先匹配；RENAMED 支持 `- From: @id:<id>` |
 | 反向追踪 | `wf-tools spec coverage <FR-N\|requirement\|capability\|id>` 扫 REQUIREMENTS/specs/phase/changes/git log，返回结构化 traces |
 
+### Claude Code Skill 化（Phase E）
+
+WF 全量迁移到 Claude Code 官方 Skill 机制：`.claude/skills/<name>/SKILL.md` 与 `.claude/commands/<name>.md` 等价产生 `/name`，Skill 多出 `description` 驱动的语义触发、`disable-model-invocation` / `paths` / `context: fork` 等能力。
+
+20 个 WF Skill 按触发策略分类：
+
+| 触发策略 | skill 数量 | 代表 | 行为 |
+|---|---|---|---|
+| 开放自动触发 | 12 | `wf-progress` / `wf-quick` / `wf-git-conventions` / `wf-code-review` 等 | Claude 读 description 语义匹配后主动调用 |
+| `disable-model-invocation: true` | 6 | `wf-new-project` / `wf-execute-phase` / `wf-autonomous` / `wf-complete-milestone` / `wf-archive-change` / `wf-new-milestone` | 不可逆重大操作，只能用户显式 |
+| `user-invocable: false` | 2 | `wf-gates` / `wf-worktree-lifecycle` | 后台知识，Claude 决策时参考，不出现在 `/` 菜单 |
+
+特殊能力：`wf-code-review` 用 `context: fork + agent: general-purpose`，在 forked subagent 中执行审查，保护主 session context。
+
+**用户视角的变化**：
+- 问"项目进度怎么样" → Claude 自动触发 `wf-progress`
+- 写 git commit → Claude 自动加载 `wf-git-conventions` 的规则
+- 说"改个 bug" → Claude 自动加载 `wf-quick` 管道
+- 显式 `/wf-new-project` / `/wf-autonomous` 等行为与今日完全一致（向后兼容）
+
 ---
 
 ## Agent
@@ -415,6 +435,10 @@ WF 集成了用户全局 `~/.claude/CLAUDE.md` 的 Git 规范并做 WF 特定扩
 │   │   ├── config-precedence.md     #   配置优先级
 │   │   ├── git-conventions.md       #   Git 分支/commit/worktree 规范（集成全局）
 │   │   └── troubleshooting.md       #   8 个常见场景
+│   │
+│   ├── skills/                      # 20 个 Claude Code Skill（Phase E）
+│   │   ├── wf-<name>/SKILL.md       #   frontmatter + @ 引用 workflow/reference
+│   │   └── ...                      #   14 开放触发 / 4 受控 / 2 后台知识
 │   │
 │   └── templates/                   # 9 个项目模板
 │       ├── config.json

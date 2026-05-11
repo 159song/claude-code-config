@@ -6,9 +6,18 @@
 ## 1. 整体架构分层
 
 ```
-┌── L5 入口 ─────────────────────────────────────────────────────┐
+┌── L6 语义触发层 (Phase E) ─────────────────────────────────────┐
+│  wf/skills/wf-*/SKILL.md       20 个 Claude Code 官方 Skill    │
+│  - 12 开放自动触发（description 驱动）                          │
+│  - 6 受控触发（disable-model-invocation: true）                 │
+│  - 2 后台知识（user-invocable: false）                          │
+│  - 1 个 context: fork（wf-code-review）                         │
+└───────────────────────────────────┬────────────────────────────┘
+                                    │ 同名 /wf-xxx 等价触发
+┌── L5 显式入口 ─────────────────────────────────────────────────┐
 │  commands/wf/*.md              17 个 slash 命令薄 shim         │
 │  /wf-new-project  /wf-autonomous  /wf-propose  /wf-archive ... │
+│  (保留作为向后兼容，与 L6 skill 同名时 skill 优先)              │
 └───────────────────────────────────┬────────────────────────────┘
                                     │ @ include
 ┌── L4 工作流主体 ────────────────────▼──────────────────────────┐
@@ -259,3 +268,56 @@ flowchart TD
 
 > 本文档与 `ARCHITECTURE.md`、`README.md` 同步更新。
 > 原始讨论见 `/Users/zxs/.claude/plans/project-claude-peaceful-bengio.md`。
+
+---
+
+## 7. Phase E — Skill 层全景
+
+```
+                        用户输入
+                           │
+                 ┌─────────┴─────────┐
+                 │                   │
+          自然语言/语义         显式 /wf-xxx
+                 │                   │
+                 ▼                   ▼
+        ┌───────────────────────────────────┐
+        │  Claude Code Runtime (Skill 发现)  │
+        │                                   │
+        │  读取所有 SKILL.md 的 description  │
+        │  ↓                                │
+        │  语义匹配 → 激活对应 skill         │
+        └──────────────┬────────────────────┘
+                       │
+        ┌──────────────┴───────────────────┐
+        │                                   │
+   开放触发 skill (14)                受控/后台 skill (6)
+        │                                   │
+   立即执行 body                  disable: 用户显式时才激活
+                                 user-invocable:false: Claude 参考但不出菜单
+        │                                   │
+        └──────────────┬───────────────────┘
+                       │
+                       ▼
+            @ 引用 workflow/reference body
+                       │
+                       ▼
+              展开到传统 L4 (workflow) / L3 (agent) / L2 (CLI)
+```
+
+### 20 个 Skill 分类
+
+| 类别 | Skills |
+|---|---|
+| 命令型 · 开放触发 | wf-progress / wf-next / wf-quick / wf-verify-work / wf-propose / wf-apply-change / wf-validate-spec / wf-code-review (+ context: fork) |
+| 命令型 · 受控触发 | wf-new-project / wf-execute-phase / wf-autonomous / wf-complete-milestone / wf-archive-change / wf-new-milestone |
+| Reference 型 · 开放触发 | wf-troubleshooting / wf-anti-patterns / wf-4-level-verification / wf-git-conventions |
+| Reference 型 · 后台 | wf-gates / wf-worktree-lifecycle |
+
+### Phase E 对用户的可见变化
+
+- "项目进度怎么样" → 自动触发 `wf-progress`
+- "帮我改个 bug" → 自动加载 `wf-quick`
+- 写 git commit → 自动加载 `wf-git-conventions` 的规则
+- "CONTINUATION.md 损坏了" → 自动加载 `wf-troubleshooting`
+- 显式 `/wf-new-project` / `/wf-autonomous` 等行为与 Phase E 之前完全一致

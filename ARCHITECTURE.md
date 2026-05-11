@@ -1063,3 +1063,89 @@ Phase A+B+C+D 累计 **107/107 测试通过**。
 
 - 把 `wf-proposer` 与 `wf-planner` 合并为按 prompt 参数切换的双模式，降低维护成本
 - `wf-tools change diff` 增加 `--html` 输出以便贴到 code review 评论
+
+---
+
+## Phase E — Claude Code Skill 化重构
+
+### 背景
+
+Phase A-D 围绕 OpenSpec 借鉴。Phase E 把 WF 全量资产迁移到 Claude Code **官方 Skill 机制**（`.claude/skills/<name>/SKILL.md`）。关键事实：
+- `.claude/commands/*.md` 与 `.claude/skills/<name>/SKILL.md` 等价产生 `/name`（官方合并）
+- Skill 多出 `disable-model-invocation` / `paths` / `context: fork` / `allowed-tools` 等 frontmatter 能力
+- Skill 的 `description` 驱动 Claude 语义触发，**按需加载 body**，省 context
+
+### 20 个 Skill 最终清单
+
+分 4 批分阶段实施（E-1 ~ E-4）：
+
+| 批次 | Skill | 触发策略 | 说明 |
+|---|---|---|---|
+| E-1 | wf-troubleshooting / wf-anti-patterns / wf-4-level-verification | 开放 | reference → skill，零破坏试点 |
+| E-2 | wf-progress / wf-next / wf-quick / wf-verify-work / wf-propose | 开放 | 高频 informational/task，语义触发友好 |
+| E-2 | wf-new-project / wf-execute-phase / wf-autonomous / wf-complete-milestone | **受控**（`disable-model-invocation: true`） | 不可逆操作，只能显式 |
+| E-3 | wf-git-conventions | 开放 | 任何 git 操作自动激活 |
+| E-3 | wf-gates / wf-worktree-lifecycle | **后台**（`user-invocable: false`） | Claude 决策时参考，用户不直接调用 |
+| E-4 | wf-code-review | 开放 + **`context: fork`** | forked subagent 跑审查，主 session context 不污染 |
+| E-4 | wf-apply-change / wf-validate-spec | 开放 | 变更生命周期 |
+| E-4 | wf-archive-change / wf-new-milestone | **受控** | 不可逆归档 + 新 milestone 创建 |
+
+**共识**：20 个 skill 中 **12 个开放触发、6 个 `disable-model-invocation: true`、2 个 `user-invocable: false`**。`wf-code-review` 是唯一使用 `context: fork` 的 skill。
+
+### 目录结构（Phase E 后）
+
+```
+wf/
+├── skills/                          # 【新增】20 个 skill
+│   ├── wf-<name>/SKILL.md           # frontmatter + @ 引用 workflow/reference
+│   └── ...
+├── workflows/                       # 【保留】16 个 workflow，被 skill @ 引用
+├── references/                      # 【保留】9 个 reference
+│   ├── agent-contracts.md           #   含术语区分章节（见下）
+│   ├── ui-brand.md                  #   14 行共享视觉规范，被大量 skill 引用
+│   ├── gates.md                     #   原文保留，wf-gates skill 是索引
+│   ├── verification-patterns.md     #   原文保留，wf-4-level-verification skill 是索引
+│   ├── git-conventions.md           #   原文保留，wf-git-conventions skill 是索引
+│   ├── worktree-lifecycle.md        #   原文保留，wf-worktree-lifecycle skill 是索引
+│   ├── anti-patterns.md             #   原文保留，wf-anti-patterns skill 是索引
+│   ├── troubleshooting.md           #   原文保留，wf-troubleshooting skill 是索引
+│   ├── context-budget.md
+│   ├── continuation-format.md
+│   ├── shared-patterns.md
+│   └── config-precedence.md
+├── bin/ templates/                  # 不动
+│
+commands/wf/                         # 【保留】老 command shim 全部保留，向后兼容
+agents/                              # 【保留】7 个 sub-agent 全部不迁
+hooks/                               # 【保留】4 个 hook 全部不迁
+```
+
+### 两种 "Skill" 术语区分
+
+WF 现存两种 "Skill" 表述（见 `wf/references/agent-contracts.md` 顶部"术语区分"章节）：
+
+1. **WF 伪代码 `Skill(name, args)`**：workflow 文件里用的 LLM 指令伪代码
+2. **Claude Code 真 Skill**：`wf/skills/<name>/SKILL.md` 官方机制
+
+两者互不冲突：真 Skill 的 body 可以 `@` 引用 workflow，workflow 内的伪代码仍可引用另一个 workflow。
+
+### install.sh 扩展
+
+`wf/bin/install.sh` 和 `install.sh`（repo 根）均新增：
+- `wf/skills/<name>/` → `$CLAUDE_DIR/skills/<name>/` 的复制块（排除 `*.test.*`）
+- `uninstall` 清理 `${CLAUDE_DIR}/skills/wf-*`
+- `validate_install` 哨兵检查 13 个关键 skill 存在
+
+### 向后兼容
+
+- `commands/wf/*.md` 全部保留，`/wf-xxx` 老入口仍然工作
+- 同名时 skill 优先生效（Claude Code 官方规定）
+- 107 个既有测试（spec 33 + change 56 + milestone 18）零回归
+
+### Phase E 意义
+
+1. **用户问"项目进度怎么样" → Claude 自动触发 `wf-progress`**
+2. **用户写 git commit → Claude 自动加载 `wf-git-conventions`**
+3. **不可逆操作（new-project / archive-change 等）保护良好**
+4. **`wf-code-review` 用 `context: fork` 保护主 session context**
+5. **WF 完成从"显式 orchestrator"到"Claude 能自动发现+应用的技能库 + 显式命令"的混合形态升级**
