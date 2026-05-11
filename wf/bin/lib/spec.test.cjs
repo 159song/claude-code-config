@@ -354,3 +354,103 @@ test('validateAll flags capability dir with invalid kebab-case name', () => {
     cleanupTemp(tmpDir);
   }
 });
+
+// ============================================================
+// Phase D-3: coverageQuery (reverse traceability)
+// ============================================================
+
+test('coverageQuery requires a non-empty query', () => {
+  const result = spec.coverageQuery('/tmp', '');
+  assert.ok(result.error.includes('required'));
+});
+
+test('coverageQuery finds FR-N in REQUIREMENTS.md with word-boundary matching', () => {
+  const tmp = createTempProject();
+  try {
+    const fs2 = require('fs');
+    const pth = require('path');
+    fs2.writeFileSync(pth.join(tmp, '.planning', 'REQUIREMENTS.md'),
+      '- FR-01: user login\n- FR-10: admin panel\n', 'utf8');
+    const r = spec.coverageQuery(tmp, 'FR-01');
+    assert.ok(r.traces.some(t => t.source === 'REQUIREMENTS.md' && t.detail.text.includes('FR-01')));
+    assert.ok(!r.traces.some(t => t.source === 'REQUIREMENTS.md' && t.detail.text.includes('FR-10')),
+      'FR-01 should NOT match FR-10 (word boundary)');
+  } finally { cleanupTemp(tmp); }
+});
+
+test('coverageQuery finds requirement by header in specs/', () => {
+  const tmp = createTempProject();
+  try {
+    writeSpec(tmp, 'auth', GOOD_SPEC);
+    const r = spec.coverageQuery(tmp, 'User Login');
+    assert.ok(r.traces.some(t => t.source === 'specs/<capability>' && t.detail.requirement === 'User Login'));
+  } finally { cleanupTemp(tmp); }
+});
+
+test('coverageQuery finds capability by name in specs/', () => {
+  const tmp = createTempProject();
+  try {
+    writeSpec(tmp, 'auth', GOOD_SPEC);
+    const r = spec.coverageQuery(tmp, 'auth');
+    assert.ok(r.traces.some(t => t.source === 'specs/<capability>' && t.detail.match === 'capability name'));
+  } finally { cleanupTemp(tmp); }
+});
+
+test('coverageQuery scans phase-N PLAN/SUMMARY files', () => {
+  const tmp = createTempProject();
+  try {
+    const fs2 = require('fs');
+    const pth = require('path');
+    const phaseDir = pth.join(tmp, '.planning', 'phase-1');
+    fs2.mkdirSync(phaseDir, { recursive: true });
+    fs2.writeFileSync(pth.join(phaseDir, 'PLAN.md'), 'task covers FR-01 via src/auth.ts\n', 'utf8');
+    fs2.writeFileSync(pth.join(phaseDir, 'SUMMARY.md'), 'completed FR-01\n', 'utf8');
+    const r = spec.coverageQuery(tmp, 'FR-01');
+    const phaseTraces = r.traces.filter(t => t.source === 'phase');
+    assert.ok(phaseTraces.length >= 2, 'should hit both PLAN and SUMMARY');
+  } finally { cleanupTemp(tmp); }
+});
+
+test('coverageQuery picks up active changes and archived changes separately', () => {
+  const tmp = createTempProject();
+  try {
+    const fs2 = require('fs');
+    const pth = require('path');
+
+    // active change referencing the requirement
+    const activeDir = pth.join(tmp, '.planning', 'changes', 'add-oauth', 'specs', 'auth');
+    fs2.mkdirSync(activeDir, { recursive: true });
+    fs2.writeFileSync(pth.join(activeDir, 'spec.md'),
+      '## MODIFIED Requirements\n### Requirement: User Login\nnew body\n', 'utf8');
+
+    // archived change referencing it
+    const archDir = pth.join(tmp, '.planning', 'changes', 'archive', '2026-01-01-old', 'specs', 'auth');
+    fs2.mkdirSync(archDir, { recursive: true });
+    fs2.writeFileSync(pth.join(archDir, 'spec.md'),
+      '## ADDED Requirements\n### Requirement: User Login\n...\n', 'utf8');
+
+    const r = spec.coverageQuery(tmp, 'User Login');
+    assert.ok(r.traces.some(t => t.source === 'changes' && t.detail.change_id === 'add-oauth'));
+    assert.ok(r.traces.some(t => t.source === 'changes/archive' && t.detail.change_id === '2026-01-01-old'));
+  } finally { cleanupTemp(tmp); }
+});
+
+test('coverageQuery returns empty traces for unknown query', () => {
+  const tmp = createTempProject();
+  try {
+    const r = spec.coverageQuery(tmp, 'NonexistentThing');
+    assert.strictEqual(r.total, 0);
+    assert.ok(Array.isArray(r.traces));
+  } finally { cleanupTemp(tmp); }
+});
+
+test('coverageQuery returns error when .planning/ absent', () => {
+  const fs2 = require('fs');
+  const os2 = require('os');
+  const pth = require('path');
+  const tmp = fs2.mkdtempSync(pth.join(os2.tmpdir(), 'wf-cov-bare-'));
+  try {
+    const r = spec.coverageQuery(tmp, 'anything');
+    assert.ok(r.error && r.error.includes('.planning/'));
+  } finally { cleanupTemp(tmp); }
+});

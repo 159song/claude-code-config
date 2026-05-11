@@ -258,6 +258,187 @@ function validateAll(cwd, options) {
   return { valid: allValid, total: results.length, total_issues: totalIssues, capabilities: results };
 }
 
+// 反向追踪：给定 FR-ID 或 requirement header 或 capability 名，
+// 扫描 REQUIREMENTS.md / specs/ / phase-N/ / changes/（含 archive）/ git log，
+// 返回结构化 traces，回答"这个需求有哪些实现/计划/变更？"
+function coverageQuery(cwd, query) {
+  if (!query || typeof query !== 'string' || query.trim() === '') {
+    return { query, error: 'query required (FR-N | requirement header | capability name)' };
+  }
+  const q = query.trim();
+  const traces = [];
+
+  const planningDir = path.join(cwd, '.planning');
+  if (!fs.existsSync(planningDir)) {
+    return { query: q, traces: [], error: '.planning/ not found' };
+  }
+
+  const addTrace = (source, detail) => traces.push({ source, detail });
+
+  // 1. REQUIREMENTS.md：搜 FR-ID 或任意文本匹配
+  const reqPath = path.join(planningDir, 'REQUIREMENTS.md');
+  const reqContent = utils.readFile(reqPath);
+  if (reqContent) {
+    const lines = reqContent.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      if (lineMatches(lines[i], q)) {
+        addTrace('REQUIREMENTS.md', { path: reqPath, line: i + 1, text: lines[i].trim() });
+      }
+    }
+  }
+
+  // 2. specs/<cap>/spec.md：capability 名或 requirement header 匹配
+  const specsRoot = path.join(planningDir, SPECS_DIR);
+  if (fs.existsSync(specsRoot)) {
+    for (const entry of fs.readdirSync(specsRoot, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      if (!CAPABILITY_PATTERN.test(entry.name)) continue;
+      const specPath = path.join(specsRoot, entry.name, 'spec.md');
+      const content = utils.readFile(specPath);
+      if (!content) continue;
+
+      if (entry.name === q) {
+        addTrace('specs/<capability>', { capability: entry.name, path: specPath, match: 'capability name' });
+      }
+
+      const parsed = parseSpec(content);
+      for (const req of parsed.requirements) {
+        if (req.name === q || (typeof req.id === 'string' && req.id === q)) {
+          addTrace('specs/<capability>', {
+            capability: entry.name,
+            path: specPath,
+            requirement: req.name,
+            scenarios: req.scenarios.length,
+            match: req.id === q ? 'requirement id' : 'requirement header'
+          });
+        }
+      }
+    }
+  }
+
+  // 3. phase-N/PLAN*.md & SUMMARY*.md：文本匹配
+  for (const entry of fs.readdirSync(planningDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    if (!/^phase-\d+$/.test(entry.name) && !/^phases$/.test(entry.name)) continue;
+    // phase-N/ 目录下直接扫文件
+    if (/^phase-\d+$/.test(entry.name)) {
+      scanPhaseDir(path.join(planningDir, entry.name), q, addTrace);
+    } else {
+      // phases/ 下再向下一层
+      const parent = path.join(planningDir, entry.name);
+      for (const sub of fs.readdirSync(parent, { withFileTypes: true })) {
+        if (sub.isDirectory()) scanPhaseDir(path.join(parent, sub.name), q, addTrace);
+      }
+    }
+  }
+
+  // 4. changes/<id>/ 及 changes/archive/<stamp-id>/ 的 specs/<cap>/spec.md
+  const changesRoot = path.join(planningDir, 'changes');
+  if (fs.existsSync(changesRoot)) {
+    scanChangeTree(changesRoot, q, false, addTrace);
+    const archiveRoot = path.join(changesRoot, 'archive');
+    if (fs.existsSync(archiveRoot)) scanChangeTree(archiveRoot, q, true, addTrace);
+  }
+
+  // 5. git log（文本匹配 commit message）
+  try {
+    const { execFileSync } = require('child_process');
+    const out = execFileSync('git', ['log', '--oneline', '--grep', q, '-n', '10'], {
+      cwd,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    });
+    for (const line of out.split('\n')) {
+      if (!line.trim()) continue;
+      const m = line.match(/^(\S+)\s+(.+)$/);
+      if (m) addTrace('git log', { sha: m[1], message: m[2] });
+    }
+  } catch {
+    // git 不可用或不在 git 仓库，忽略
+  }
+
+  return { query: q, total: traces.length, traces };
+}
+
+function lineMatches(line, q) {
+  if (!line) return false;
+  // 精确 FR-N / NFR-N 识别：不做子串扩张（FR-1 不应该匹配 FR-10）
+  if (/^(FR|NFR)-\d+$/i.test(q)) {
+    const pattern = new RegExp(`\\b${q}\\b`, 'i');
+    return pattern.test(line);
+  }
+  return line.includes(q);
+}
+
+function scanPhaseDir(dir, q, addTrace) {
+  if (!fs.existsSync(dir)) return;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (!entry.isFile()) continue;
+    if (!/\.md$/i.test(entry.name)) continue;
+    if (!/PLAN|SUMMARY|VERIFICATION|CONTEXT/i.test(entry.name)) continue;
+    const filePath = path.join(dir, entry.name);
+    const content = utils.readFile(filePath);
+    if (!content) continue;
+    const lines = content.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      if (lineMatches(lines[i], q)) {
+        addTrace('phase', {
+          phase_dir: path.basename(dir),
+          file: entry.name,
+          path: filePath,
+          line: i + 1,
+          text: lines[i].trim().slice(0, 160)
+        });
+        // 一个文件最多报 3 行，避免刷屏
+        if (addTrace._phaseFileCount === undefined) addTrace._phaseFileCount = 0;
+      }
+    }
+  }
+}
+
+function scanChangeTree(root, q, archived, addTrace) {
+  for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    if (!archived && entry.name === 'archive') continue;
+    const changeDir = path.join(root, entry.name);
+    const specsDir = path.join(changeDir, 'specs');
+    if (!fs.existsSync(specsDir)) continue;
+    for (const capEntry of fs.readdirSync(specsDir, { withFileTypes: true })) {
+      if (!capEntry.isDirectory()) continue;
+      const deltaPath = path.join(specsDir, capEntry.name, 'spec.md');
+      const content = utils.readFile(deltaPath);
+      if (!content) continue;
+      const lines = content.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        // 在 change delta 里我们要找 "### Requirement: <header>" 或 "FR-N" 文本
+        if (line.startsWith('### Requirement:')) {
+          const name = line.slice('### Requirement:'.length).trim();
+          if (name === q) {
+            addTrace(archived ? 'changes/archive' : 'changes', {
+              change_id: entry.name,
+              capability: capEntry.name,
+              path: deltaPath,
+              line: i + 1,
+              requirement: name,
+              match: 'requirement header'
+            });
+          }
+        } else if (lineMatches(line, q)) {
+          addTrace(archived ? 'changes/archive' : 'changes', {
+            change_id: entry.name,
+            capability: capEntry.name,
+            path: deltaPath,
+            line: i + 1,
+            text: line.trim().slice(0, 160),
+            match: 'text'
+          });
+        }
+      }
+    }
+  }
+}
+
 // 命令分发
 function run(cwd, args) {
   const sub = args[0];
@@ -292,7 +473,14 @@ function run(cwd, args) {
     process.exit(result.valid ? 0 : 1);
   }
 
-  utils.error('用法: wf-tools spec [list|show <capability>|validate [<capability>] [--all]]');
+  if (sub === 'coverage') {
+    const query = args.slice(1).filter(a => !a.startsWith('--')).join(' ');
+    const result = coverageQuery(cwd, query);
+    utils.output(result);
+    process.exit(result.error ? 1 : 0);
+  }
+
+  utils.error('用法: wf-tools spec [list|show <capability>|validate [<capability>] [--all]|coverage <query>]');
   process.exit(1);
 }
 
@@ -303,6 +491,7 @@ module.exports = {
   showSpec,
   validateOne,
   validateAll,
+  coverageQuery,
   run,
   CAPABILITY_PATTERN
 };
