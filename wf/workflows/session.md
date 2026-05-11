@@ -59,7 +59,7 @@ node "$HOME/.claude/wf/bin/wf-tools.cjs" session pause \
    ```bash
    node "$HOME/.claude/wf/bin/wf-tools.cjs" session status
    ```
-2. 如果 `has_handoff` 为 false，告知用户没有检查点可恢复，建议运行 `/wf-next`。
+2. 如果 `has_handoff` 为 false，告知用户没有检查点可恢复，建议运行 `/wf-status --auto-advance`。
 
 ### Step 2: 分支检查（per D-06）
 

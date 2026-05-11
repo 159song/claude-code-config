@@ -201,7 +201,7 @@ Skill(new-milestone)
 
 按照 `wf/workflows/new-milestone.md` 端到端执行新里程碑初始化。
 
-**如果用户选择跳过：** 显示下一步路由（ui-brand 检查点框: /wf-new-milestone、/wf-progress）。
+**如果用户选择跳过：** 显示下一步路由（ui-brand 检查点框: /wf-new-milestone、/wf-status）。
 </step>
 
 </process>

@@ -19,8 +19,8 @@
 | "验证/检查/测试" | `/wf-verify-work` |
 | "自动/全自动/一键运行" | `/wf-autonomous` |
 | "快速/修复/小改动" | `/wf-quick` |
-| "进度/状态" | `/wf-progress` |
-| "下一步/继续" | `/wf-next` |
+| "进度/状态/现在怎么样" | `/wf-status` |
+| "下一步/继续/接下来做什么" | `/wf-status --auto-advance` |
 
 如果无法明确匹配，展示候选列表让用户选择。
 </step>

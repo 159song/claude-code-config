@@ -189,7 +189,7 @@ git commit -m "docs: update UAT status"
 
 当所有验证项为 PASS 或被用户接受时：
 
-显示完成横幅（ui-brand 标准横幅: 通过数/总数、修复问题数、接受问题数；下一步路由: /wf-progress）。
+显示完成横幅（ui-brand 标准横幅: 通过数/总数、修复问题数、接受问题数；下一步路由: /wf-status）。
 </step>
 
 </process>

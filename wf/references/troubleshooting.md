@@ -111,7 +111,7 @@
 
 ## 6. STATE.md 与实际进度不一致
 
-**症状:** `/wf-progress` 显示的进度与实际完成的工作不符。
+**症状:** `/wf-status` 显示的进度与实际完成的工作不符。
 
 **排查:**
 
@@ -122,7 +122,7 @@
 2. 检查各阶段目录中是否有 SUMMARY.md 和 VERIFICATION.md
 3. 如果文件存在但 STATE.md 未更新：可能是 `wf-tools state` CLI 未执行
 
-**修复:** 使用 `/wf-progress` 重新扫描实际状态，或手动运行：
+**修复:** 使用 `/wf-status` 重新扫描实际状态，或手动运行：
 ```bash
 node "$HOME/.claude/wf/bin/wf-tools.cjs" state sync
 ```
@@ -173,7 +173,7 @@ node "$HOME/.claude/wf/bin/wf-tools.cjs" state sync
 
 ```bash
 # 查看当前状态
-/wf-progress
+/wf-status
 
 # 查看 context 使用率
 cat /tmp/claude-ctx-*.json 2>/dev/null
