@@ -210,6 +210,7 @@ do_uninstall() {
     "${CLAUDE_DIR}/hooks/wf-*.js"
     "${CLAUDE_DIR}/agents/wf-*.md"
     "${CLAUDE_DIR}/commands/wf"
+    "${CLAUDE_DIR}/skills/wf-*"
     "${CLAUDE_DIR}/wf"
   )
 
@@ -283,6 +284,7 @@ copy_files() {
     "${CLAUDE_DIR}/commands/wf"
     "${CLAUDE_DIR}/agents"
     "${CLAUDE_DIR}/hooks"
+    "${CLAUDE_DIR}/skills"
     "${CLAUDE_DIR}/wf/workflows"
     "${CLAUDE_DIR}/wf/references"
     "${CLAUDE_DIR}/wf/templates"
@@ -388,6 +390,32 @@ copy_files() {
   done
   log_dim "${tpl_count} 个模板"
   file_count=$((file_count + tpl_count))
+
+  # --- Skills (每个 skill 是一个目录，含 SKILL.md + 可选辅助文件) ---
+  if [[ -d "${WF_SOURCE}/wf/skills" ]]; then
+    log_info "复制 Skills..."
+    local skill_count=0
+    for skill_dir in "${WF_SOURCE}/wf/skills/"*/; do
+      [[ -d "$skill_dir" ]] || continue
+      local skill_name
+      skill_name=$(basename "$skill_dir")
+      local target="${CLAUDE_DIR}/skills/${skill_name}"
+      if $DRY_RUN; then
+        log_dim "[dry-run] ${skill_name}/"
+      else
+        mkdir -p "$target"
+        # 复制 SKILL.md + 其它文件，排除 *.test.*
+        for f in "$skill_dir"*; do
+          [[ -e "$f" ]] || continue
+          [[ "$(basename "$f")" == *.test.* ]] && continue
+          cp -r "$f" "$target/"
+        done
+      fi
+      skill_count=$((skill_count + 1))
+    done
+    log_dim "${skill_count} 个 Skills"
+    file_count=$((file_count + skill_count))
+  fi
 
   # --- CLI 工具和 lib (排除测试文件) ---
   log_info "复制 CLI 工具..."
@@ -553,6 +581,9 @@ validate_install() {
     "${CLAUDE_DIR}/wf/templates/config.json"
     "${CLAUDE_DIR}/wf/VERSION"
     "${CLAUDE_DIR}/settings.json"
+    "${CLAUDE_DIR}/skills/wf-troubleshooting/SKILL.md"
+    "${CLAUDE_DIR}/skills/wf-anti-patterns/SKILL.md"
+    "${CLAUDE_DIR}/skills/wf-4-level-verification/SKILL.md"
   )
 
   for f in "${critical_files[@]}"; do
