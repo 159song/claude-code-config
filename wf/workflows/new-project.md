@@ -12,7 +12,9 @@
 
 完成后运行: `/wf-discuss-phase 1` 或 `/wf-autonomous`
 
-> **参考:** Agent 合同定义见 `wf/references/agent-contracts.md`
+> **参考:**
+> - Agent 合同定义见 `wf/references/agent-contracts.md`
+> - Git 约定（scope、分支、tag）见 `wf/references/git-conventions.md`
 </purpose>
 
 <flags>

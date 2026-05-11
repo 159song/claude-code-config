@@ -310,6 +310,25 @@ Agent 协作方式：
 
 ---
 
+## Git Conventions
+
+WF 集成了用户全局 `~/.claude/CLAUDE.md` 的 Git 规范并做 WF 特定扩展，权威来源：[`wf/references/git-conventions.md`](wf/references/git-conventions.md)。
+
+核心约定：
+
+| 维度 | 约定 |
+|---|---|
+| **Commit 格式** | Conventional Commits：`<type>(<scope>): <subject>` |
+| **Scope（WF 扩展）** | phase 执行 → `phase-<N>`；change 应用 → `change-<id>`；里程碑 → `chore(milestone)` + `git tag v1.0`；初始化 → `chore(planning)` |
+| **原子性** | 一任务一 commit，禁止 `--amend` / `--no-verify` / squash |
+| **分支（继承全局）** | `master`（PRO）/ `develop`（DEV）/ `feature/*`（FAT）/ `release/*`（UAT）/ `hotfix/*`（PRO） |
+| **Worktree** | executor sub-agent 自动隔离到临时 worktree，完成后 fast-forward 合并回来 |
+| **Push** | WF 不自动 push，所有推送需用户显式触发 |
+
+新人推荐直接读 `wf/references/git-conventions.md` 全文（约 200 行，含完整示例与 fallback）。
+
+---
+
 ## 项目结构
 
 ```
@@ -383,7 +402,7 @@ Agent 协作方式：
 │   │   ├── progress.md              #   仪表盘
 │   │   └── ...
 │   │
-│   ├── references/                  # 11 个参考文档
+│   ├── references/                  # 12 个参考文档
 │   │   ├── gates.md                 #   质量门禁定义
 │   │   ├── verification-patterns.md #   4 级验证模型
 │   │   ├── agent-contracts.md       #   Agent I/O 契约
@@ -394,6 +413,7 @@ Agent 协作方式：
 │   │   ├── worktree-lifecycle.md    #   Git worktree 隔离
 │   │   ├── shared-patterns.md       #   Wave 模型、完成标记
 │   │   ├── config-precedence.md     #   配置优先级
+│   │   ├── git-conventions.md       #   Git 分支/commit/worktree 规范（集成全局）
 │   │   └── troubleshooting.md       #   8 个常见场景
 │   │
 │   └── templates/                   # 9 个项目模板

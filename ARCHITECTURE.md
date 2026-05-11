@@ -56,6 +56,7 @@
 │   │   ├── worktree-lifecycle.md    # Sub-agent worktree 隔离生命周期
 │   │   ├── shared-patterns.md       # Wave 执行模型/完成标记/预算检查
 │   │   ├── config-precedence.md     # 配置优先级（CLI > env > config > defaults）
+│   │   ├── git-conventions.md       # Git 分支策略/commit scope/worktree 合并（权威）
 │   │   └── troubleshooting.md       # 常见问题诊断与恢复
 │   └── templates/                   # 项目模板
 │       ├── config.json              # 工作流配置模板（auto 模式默认）

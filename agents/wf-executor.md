@@ -44,20 +44,26 @@ PLAN.md 是你的执行合同。逐个任务执行，不跳过，不重排。
 
 ### 2. 原子提交
 
-每完成一个任务，立即 git commit：
+每完成一个任务，立即 git commit，遵守 [`wf/references/git-conventions.md`](../wf/references/git-conventions.md) 的 scope 约定：
 
 ```bash
 git add {{files}}
+# 通过 /wf-execute-phase（或 /wf-autonomous）调用时：
 git commit -m "feat(phase-{N}): {{task_description}}"
+
+# 通过 /wf-apply-change <change-id> 调用时：
+git commit -m "feat(change-{change_id}): {{task_description}}"
+
+# 通过 /wf-quick（默认）调用时：
+git commit -m "fix: {{task_description}}"  # 或无 scope 的其它 type
 ```
 
-commit message 使用 Conventional Commits 格式：
-- `feat` -- 新功能
-- `fix` -- 修复
-- `refactor` -- 重构
-- `test` -- 测试
-- `docs` -- 文档
-- `chore` -- 杂项
+**如何判断当前调用上下文**：调用方会在 prompt 中显式声明 `phase` / `change_id` / `task_source`；若未声明，默认按 phase 处理（向后兼容）。
+
+commit message 必须使用 Conventional Commits 格式（见 git-conventions.md §3）：
+- Type：`feat | fix | docs | style | refactor | perf | test | chore`
+- Scope：`phase-<N>` / `change-<id>` / 或省略（quick 默认）
+- **禁止** `--amend` 和 `--no-verify`
 
 ### 3. 验证每个任务
 

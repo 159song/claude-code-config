@@ -9,7 +9,10 @@ orchestrator 保持轻量：发现计划 → 分析依赖 → 分波 → 派发 
 - `.planning/phase-{N}/SUMMARY-*.md` — 每个计划的执行摘要
 - `.planning/phase-{N}/VERIFICATION.md` — 阶段验证结果
 
-> **参考:** Agent 合同定义见 `wf/references/agent-contracts.md`
+> **参考:**
+> - Agent 合同定义见 `wf/references/agent-contracts.md`
+> - Git 约定（commit scope、worktree 合并策略）见 `wf/references/git-conventions.md`
+>   —— commit 必须用 `feat(phase-<N>): ...` 或同类 scope
 </purpose>
 
 <flags>

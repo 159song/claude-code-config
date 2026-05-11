@@ -5,7 +5,9 @@ bug 修复、小功能、配置调整、文档更新等。
 完整管道: 规划 → 执行 → 验证（简化版）
 产出文件存放在 `.planning/quick/` 目录。
 
-> **参考:** Agent 合同定义见 `wf/references/agent-contracts.md`
+> **参考:**
+> - Agent 合同定义见 `wf/references/agent-contracts.md`
+> - Git 约定见 `wf/references/git-conventions.md`（--spec 短链路走 `change-<id>` scope）
 </purpose>
 
 <flags>

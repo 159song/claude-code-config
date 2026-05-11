@@ -8,7 +8,9 @@
 - 重置后的 `.planning/STATE.md` -- 新里程碑初始状态
 - Git tag `<version>` -- 里程碑版本标签
 
-> **参考:** Agent 合同定义见 `wf/references/agent-contracts.md`
+> **参考:**
+> - Agent 合同定义见 `wf/references/agent-contracts.md`
+> - Git 约定（里程碑 tag、归档 commit scope）见 `wf/references/git-conventions.md`
 </purpose>
 
 <flags>

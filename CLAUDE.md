@@ -13,7 +13,7 @@ WF 是一套 Claude Code 个人配置/插件系统，提供结构化项目管理
 - **架构**: 保持现有分层架构，不引入破坏性重构
 - **命名**: 保持 `wf-` 前缀命名约定
 - **语言**: hooks/CLI 保持 JavaScript/Node.js，文档保持中文
-- **文档同步**: 当 WF 工作流、命令、Agent、Hook 或配置发生变更时，同步更新 `ARCHITECTURE.md`、`README.md`，并检查并更新 `docs/` 目录下**所有**相关文档（当前包括 `docs/workflow-diagram.md`、`docs/wf-architecture.md`、`docs/ecc-best-practices.md`，后续新增文档自动纳入此规则）。检查范围：
+- **文档同步**: 当 WF 工作流、命令、Agent、Hook 或配置发生变更时，同步更新 `ARCHITECTURE.md`、`README.md`，并检查并更新 `docs/` 目录下**所有**相关文档（当前包括 `docs/workflow-diagram.md`、`docs/wf-architecture.md`，后续新增文档自动纳入此规则）。检查范围：
   - 新增/删除/重命名 workflow (`wf/workflows/*.md`) → 更新流程图、workflow 列表
   - 新增/删除/重命名 agent (`agents/wf-*.md`) → 更新 agent 表、数量统计
   - 新增/删除/修改 hook (`hooks/wf-*.js`) → 更新 Hook 章节、事件绑定表
@@ -145,10 +145,14 @@ WF 是一套 Claude Code 个人配置/插件系统，提供结构化项目管理
 - Code blocks for examples, commands, and pseudocode
 - Inline backticks for file paths, variable names, and code references
 ## Git Conventions
-- Use Conventional Commits format in planned phases:
+- **权威来源**: [`wf/references/git-conventions.md`](wf/references/git-conventions.md)
+  —— 集成用户全局 `~/.claude/CLAUDE.md` 的分支/环境/commit 规范 + WF 特定扩展
+- Use Conventional Commits format in planned phases
+- Scope 约定：`feat(phase-<N>): ...`（阶段执行） / `feat(change-<id>): ...`（变更应用）
 - One task = one atomic commit
 - Commits created immediately after task verification passes
 - No squashing or amending (create new commit instead if corrections needed)
+- No `--no-verify` to bypass hooks — fix the root cause instead
 <!-- GSD:conventions-end -->
 
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->
