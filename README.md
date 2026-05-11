@@ -183,6 +183,20 @@ WF 不只是检查"任务跑了没？"——而是检查"目标达成了没？"
 | `/wf-code-review <phase>` | 代码质量审查，带迭代修复循环 |
 | `/wf-settings` | 查看/修改工作流配置 |
 
+### 规格空间（可选，Phase A）
+
+WF 借鉴 [OpenSpec](https://github.com/Fission-AI/OpenSpec) 的 Requirement/Scenario 模型，允许把需求以"按 capability 拆分的 spec"形式组织在 `.planning/specs/<capability>/spec.md`。默认关闭，通过 `config.spec.enabled = true` 启用。
+
+```bash
+wf-tools spec list                   # 列出所有 capability
+wf-tools spec show <capability>      # 查看某 capability 的结构化 spec
+wf-tools spec validate [--all]       # 校验 Purpose/Requirement/Scenario 结构与 WHEN/THEN 完整性
+```
+
+spec 文件格式参考 `wf/templates/spec.md`。启用后：
+- `wf-roadmapper` 会在生成 ROADMAP.md 时同步生成初始 `specs/<capability>/spec.md`
+- `wf-verifier` 在 `spec.verifier_use_scenarios = true` 时追加基于 scenario 的反推验证
+
 ---
 
 ## Agent
@@ -270,7 +284,7 @@ Agent 协作方式：
 │   ├── bin/
 │   │   ├── install.sh               # 安装脚本
 │   │   ├── wf-tools.cjs             # CLI 路由器
-│   │   └── lib/                     # 14 个模块化库文件
+│   │   └── lib/                     # 15 个模块化库文件
 │   │       ├── config.cjs           #   配置管理
 │   │       ├── state.cjs            #   STATE.md 读写（唯一写入入口）
 │   │       ├── phase.cjs            #   阶段完成检测
@@ -284,6 +298,7 @@ Agent 协作方式：
 │   │       ├── review.cjs           #   代码审查文件范围
 │   │       ├── merge-settings.cjs   #   智能 settings 合并
 │   │       ├── init.cjs             #   项目初始化
+│   │       ├── spec.cjs             #   规格解析/校验（OpenSpec-inspired）
 │   │       ├── utils.cjs            #   通用工具
 │   │       └── *.test.cjs           #   单元测试
 │   │
@@ -312,11 +327,12 @@ Agent 协作方式：
 │   │   ├── config-precedence.md     #   配置优先级
 │   │   └── troubleshooting.md       #   8 个常见场景
 │   │
-│   └── templates/                   # 5 个项目模板
+│   └── templates/                   # 6 个项目模板
 │       ├── config.json
 │       ├── project.md
 │       ├── requirements.md
 │       ├── roadmap.md
+│       ├── spec.md                  #   规格模板（Purpose + Requirement + Scenario）
 │       └── state.md
 │
 └── docs/

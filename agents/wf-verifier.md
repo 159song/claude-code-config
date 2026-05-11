@@ -122,6 +122,19 @@ grep -r "{{component}}" src/
 
 对照 REQUIREMENTS.md，检查每个阶段相关需求的验收标准是否满足。
 
+### 3a. Scenario 反推验证（当 `config.spec.verifier_use_scenarios = true`）
+
+若 `.planning/config.json` 的 `spec.enabled` 和 `spec.verifier_use_scenarios` 均为 `true`，在常规需求覆盖检查之外**追加**基于 scenario 的验证：
+
+1. 读 `wf-tools spec list` 获取全部 capability
+2. 对每个与本阶段相关的 capability，`wf-tools spec show <capability>` 读出结构化的 requirements + scenarios
+3. 对每个 `#### Scenario: <name>` 的 `WHEN/THEN` 步骤，反推一个可观测证据：
+   - 如果存在对应的自动化测试（文件名/测试用例名包含 scenario 名），运行它并记录结果
+   - 否则手工追踪 WHEN 的触发点和 THEN 的结果位置（文件:行号），写入 VERIFICATION.md
+4. 在 VERIFICATION.md 中增加"## Scenario 覆盖"小节：`| Capability | Requirement | Scenario | Status | Evidence |`
+
+若任一配置为 `false`，跳过本节，按原流程执行。两种验证路径并存不冲突。
+
 ### 4. 反模式扫描
 
 快速检查常见问题：

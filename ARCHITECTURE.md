@@ -22,6 +22,7 @@
 │   │       ├── review.cjs           # 代码审查文件范围计算
 │   │       ├── roadmap.cjs          # 路线图分析
 │   │       ├── session.cjs          # 会话暂停/恢复
+│   │       ├── spec.cjs             # 规格空间（OpenSpec-inspired）解析/校验
 │   │       ├── state.cjs            # STATE.md 读写
 │   │       ├── utils.cjs            # 通用工具函数
 │   │       ├── validate.cjs         # 输入验证
@@ -60,6 +61,7 @@
 │       ├── project.md               # 项目文档模板
 │       ├── state.md                 # 状态文件模板
 │       ├── roadmap.md               # 路线图模板
+│       ├── spec.md                  # 规格模板（Purpose + Requirement + Scenario）
 │       └── requirements.md          # 需求文档模板
 │
 ├── commands/wf/                     # 16 个命令入口（用户通过 /wf-* 调用）
@@ -791,3 +793,80 @@ Agent 调度关系
     ├── wf-roadmapper ×1    ◀── /wf-new-milestone 生成路线图
     │
     └── wf-executor ×1      ◀── /wf-code-review 自动修复（审查-修复链）
+```
+
+---
+
+## 规格空间（Phase A — OpenSpec-inspired，可选）
+
+WF 现有架构以 **phase-driven**（阶段驱动）为核心：REQUIREMENTS.md 单文件承载全部需求。Phase A 借鉴 [OpenSpec](https://github.com/Fission-AI/OpenSpec) 的 Requirement/Scenario 模型，作为**正交的第二轴**叠加进来，不改动 phase/wave/agent/hook/milestone 任何现有机制。
+
+### 目录结构
+
+```
+.planning/
+├── REQUIREMENTS.md                 # 保留：跨 capability 的需求索引
+├── specs/                          # 可选新增（spec.enabled=true 时生效）
+│   └── <capability>/               # kebab-case 命名，每个 capability 一个目录
+│       └── spec.md                 # Purpose + Requirements + Scenarios
+├── phase-N/ ...                    # 保留：阶段驱动完全不变
+└── milestones/ ...                 # 保留
+```
+
+### Spec 文件格式
+
+```markdown
+# <Capability> Specification
+
+## Purpose
+{{一句话，用 SHALL 句式表达系统目标能力}}
+
+## Requirements
+
+### Requirement: {{稳定 header 即 ID}}
+{{用 SHALL/MUST 描述行为}}
+
+#### Scenario: {{scenario 名}}
+- **WHEN** {{触发}}
+- **THEN** {{结果}}
+- **AND** {{附加结果}}
+```
+
+### 开关配置
+
+`.planning/config.json` 新增 `spec` 命名空间，默认全部关闭保证向后兼容：
+
+```json
+{
+  "spec": {
+    "enabled": false,
+    "require_scenarios": true,
+    "verifier_use_scenarios": false
+  }
+}
+```
+
+### CLI 接口
+
+| 命令 | 作用 |
+|---|---|
+| `wf-tools spec list [--json]` | 列出所有 capability，含 requirement/scenario 计数 |
+| `wf-tools spec show <capability>` | 结构化输出某 capability 的 parsed spec |
+| `wf-tools spec validate [<cap>] [--all]` | 校验 Purpose 存在、requirement header 唯一、每个 scenario 必含 WHEN+THEN |
+
+实现落在 `wf/bin/lib/spec.cjs`，路由在 `wf/bin/wf-tools.cjs` 的 switch 上追加 `case 'spec'`。
+
+### Agent 集成点（条件触发）
+
+| Agent | 触发条件 | 新增行为 |
+|---|---|---|
+| `wf-roadmapper` | `spec.enabled = true` | 生成 ROADMAP.md 后额外按 capability 产出初始 `specs/<cap>/spec.md`，并跑 `wf-tools spec validate --all` 自检 |
+| `wf-verifier` | `spec.enabled && spec.verifier_use_scenarios` | 常规需求覆盖之外追加"Scenario 覆盖"小节：每个 WHEN/THEN 反推到测试或代码位置作为证据 |
+
+### 单元测试
+
+`wf/bin/lib/spec.test.cjs` 覆盖 25 个用例：parseSpec 行为、listSpecs 过滤、showSpec 错误路径、validateOne/validateAll 的全部错误分支（Purpose 缺失、无 requirement、无 scenario、重复 header、WHEN/THEN 缺失、非 kebab-case 名称等）。
+
+### 后续 Phase
+
+Phase B 将引入 `changes/` 空间与 `ADDED/MODIFIED/REMOVED/RENAMED Requirements` delta 语法，实现完整的 propose-apply-archive 生命周期。详见 `/Users/zxs/.claude/plans/project-claude-peaceful-bengio.md`。

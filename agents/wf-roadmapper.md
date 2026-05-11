@@ -120,6 +120,26 @@ tools:
 | NFR-1 | | | | pass |
 ```
 
+## 可选：生成初始 specs/（当 config.spec.enabled = true）
+
+若 `.planning/config.json` 的 `spec.enabled` 为 `true`，在产出 ROADMAP.md 之后**额外**生成初始规格骨架：
+
+1. 从 REQUIREMENTS.md 识别 capability 分组。推荐按"业务域"划分：
+   - 认证/账号类 -> `auth`
+   - 支付/账单类 -> `payments`
+   - 通知类 -> `notifications`
+   - UI/前端壳 -> `ui`
+   - 每个域对应一个 capability，使用 kebab-case 命名（必须匹配 `^[a-z][a-z0-9-]*$`）
+
+2. 为每个 capability 生成 `.planning/specs/<capability>/spec.md`，结构参照 `wf/templates/spec.md`：
+   - `## Purpose`：一句话描述该 capability 的目标能力
+   - `## Requirements`：把归属此 capability 的 FR 映射为 `### Requirement: <name>`，每个至少包含一个 `#### Scenario:`，用 `WHEN/THEN` 语法
+   - Requirement 的 header 文本是稳定 ID，后续 change delta（ADDED/MODIFIED/REMOVED）按 header 匹配
+
+3. 生成后用 `wf-tools spec validate --all` 自检，将任何 `level: error` 项修正后再产出完成标记。
+
+4. 若 `spec.enabled = false`（默认），跳过本节，按原流程只产 ROADMAP.md。
+
 ## 验证
 
 生成后自检：
@@ -128,6 +148,7 @@ tools:
 - [ ] 无循环依赖（拓扑排序验证：从 Phase 1 开始，每个阶段的所有依赖必须出现在它之前）
 - [ ] 第一个阶段无外部依赖
 - [ ] 阶段粒度合理
+- [ ] 若 `spec.enabled = true`：`wf-tools spec validate --all` 返回 `valid: true`
 
 ### 循环依赖检测方法
 
@@ -145,6 +166,7 @@ tools:
 | Artifact | Required | Description |
 |----------|----------|-------------|
 | ROADMAP.md | Yes | Project roadmap in `.planning/` |
+| specs/*/spec.md | Conditional | 当 `config.spec.enabled = true` 时，每个 capability 一个 spec 文件 |
 
 ### Completion Marker
 

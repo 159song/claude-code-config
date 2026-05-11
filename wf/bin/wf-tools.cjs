@@ -17,6 +17,7 @@ const validate = require('./lib/validate.cjs');
 const session = require('./lib/session.cjs');
 const review = require('./lib/review.cjs');
 const milestone = require('./lib/milestone.cjs');
+const spec = require('./lib/spec.cjs');
 
 // 解析 --cwd 参数（D-12）
 const args = process.argv.slice(2);
@@ -67,7 +68,10 @@ switch (command) {
   case 'milestone':
     milestone.run(cwd, subArgs);
     break;
+  case 'spec':
+    spec.run(cwd, subArgs);
+    break;
   default:
-    process.stderr.write('WF Tools v1.0.0\n用法: wf-tools [--cwd <path>] <command>\n命令: init|state|roadmap|phase|progress|commit|config|settings|validate|session|review|milestone\n');
+    process.stderr.write('WF Tools v1.0.0\n用法: wf-tools [--cwd <path>] <command>\n命令: init|state|roadmap|phase|progress|commit|config|settings|validate|session|review|milestone|spec\n');
     process.exit(1);
 }
