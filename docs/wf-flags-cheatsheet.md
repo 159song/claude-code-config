@@ -16,6 +16,8 @@
 | `--from N` | autonomous | 从阶段 N 开始 | `--to` `--interactive` | `--only` | 断点续跑 |
 | `--to N` | autonomous | 执行到阶段 N 停止 | `--from` `--interactive` | `--only` | 限定范围 |
 | `--only N` | autonomous | 只执行阶段 N | `--interactive` | `--from` `--to` | 单阶段自动 |
+| `--summary` | status | 渲染当前/指定 phase 的任务级 diff 摘要 | – | `--auto-advance` | `/wf-status --summary` 或 `--summary 2` |
+| `--auto-advance` | status | 识别到"下一步"意图时自动推进 | – | `--summary` | `/wf-status --auto-advance` |
 | `--full` | quick | 研究 + 规划 + 执行 + 验证 | – | `--spec` `--validate` `--discuss` `--research` | 复杂小任务 |
 | `--validate` | quick | 执行后验证 | – | `--full` `--spec` | 改完立即确认 |
 | `--discuss` | quick | 先讨论再执行 | `--research` | `--full` `--spec` | 决策前 |
@@ -71,7 +73,6 @@
 ## 无 flag 约定
 
 以下 workflow 无可调 flag（设计即默认）：
-- `/wf-status`（通过意图词分流查询/推进）
 - `/wf-do`（纯路由）
 - `/wf-pause` / `/wf-resume`（无参数）
 - `/wf-complete-milestone` / `/wf-new-milestone` / `/wf-archive-change`（原子动作）
