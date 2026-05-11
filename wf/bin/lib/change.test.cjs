@@ -538,6 +538,158 @@ body
   } finally { cleanup(tmp); }
 });
 
+// ============================================================
+// Phase D-1: diffChange / lcsDiff / diffCapability
+// ============================================================
+
+test('lcsDiff returns correct ops for identical inputs', () => {
+  const ops = change.lcsDiff(['a', 'b', 'c'], ['a', 'b', 'c']);
+  assert.strictEqual(ops.filter(o => o.type !== 'keep').length, 0);
+});
+
+test('lcsDiff detects insertion', () => {
+  const ops = change.lcsDiff(['a', 'c'], ['a', 'b', 'c']);
+  assert.ok(ops.some(o => o.type === 'add' && o.text === 'b'));
+});
+
+test('lcsDiff detects deletion', () => {
+  const ops = change.lcsDiff(['a', 'b', 'c'], ['a', 'c']);
+  assert.ok(ops.some(o => o.type === 'del' && o.text === 'b'));
+});
+
+test('renderUnifiedDiff emits +/- prefixes and hunk markers', () => {
+  const ops = change.lcsDiff(['line1', 'line2'], ['line1', 'new', 'line2']);
+  const out = change.renderUnifiedDiff(ops, '--- a\n+++ b');
+  assert.ok(out.startsWith('--- a\n+++ b'));
+  assert.ok(out.includes('@@ hunk @@'));
+  assert.ok(out.includes('+new'));
+});
+
+test('diffChange shows ADDED requirement as additions', () => {
+  const tmp = createTempProject();
+  try {
+    writeMasterSpec(tmp, 'auth', MASTER_SPEC);
+    writeChangeFile(tmp, 'add-reset', 'proposal.md', '#');
+    writeChangeFile(tmp, 'add-reset', 'tasks.md', '-');
+    writeChangeFile(tmp, 'add-reset', 'specs/auth/spec.md', `## ADDED Requirements
+
+### Requirement: Password Reset
+
+The system SHALL allow resetting passwords.
+
+#### Scenario: reset
+- **WHEN** user requests reset
+- **THEN** email sent
+`);
+    const result = change.diffChange(tmp, 'add-reset');
+    assert.strictEqual(result.ok, true);
+    const cap = result.capabilities[0];
+    assert.strictEqual(cap.capability, 'auth');
+    assert.strictEqual(cap.new_capability, false);
+    assert.ok(cap.stats.additions > 0);
+    assert.strictEqual(cap.stats.deletions, 0);
+    assert.ok(cap.diff.includes('+### Requirement: Password Reset'));
+  } finally { cleanup(tmp); }
+});
+
+test('diffChange shows MODIFIED as add + del lines', () => {
+  const tmp = createTempProject();
+  try {
+    writeMasterSpec(tmp, 'auth', MASTER_SPEC);
+    writeChangeFile(tmp, 'mod', 'proposal.md', '#');
+    writeChangeFile(tmp, 'mod', 'tasks.md', '-');
+    writeChangeFile(tmp, 'mod', 'specs/auth/spec.md', `## MODIFIED Requirements
+
+### Requirement: User Login
+
+Rewritten body with OAuth support.
+
+#### Scenario: oauth
+- **WHEN** oauth
+- **THEN** token
+`);
+    const result = change.diffChange(tmp, 'mod');
+    const cap = result.capabilities[0];
+    assert.ok(cap.stats.additions > 0);
+    assert.ok(cap.stats.deletions > 0, 'MODIFIED should produce deletions');
+    assert.ok(cap.diff.includes('+Rewritten body'));
+    assert.ok(cap.diff.includes('-The system SHALL accept valid credentials.'));
+  } finally { cleanup(tmp); }
+});
+
+test('diffChange shows REMOVED as deletions only', () => {
+  const tmp = createTempProject();
+  try {
+    writeMasterSpec(tmp, 'auth', MASTER_SPEC);
+    writeChangeFile(tmp, 'rm', 'proposal.md', '#');
+    writeChangeFile(tmp, 'rm', 'tasks.md', '-');
+    writeChangeFile(tmp, 'rm', 'specs/auth/spec.md', `## REMOVED Requirements
+
+### Requirement: Session Expiry
+deprecated
+`);
+    const result = change.diffChange(tmp, 'rm');
+    const cap = result.capabilities[0];
+    assert.ok(cap.stats.deletions > 0);
+    assert.ok(cap.diff.includes('-### Requirement: Session Expiry'));
+  } finally { cleanup(tmp); }
+});
+
+test('diffChange marks new capability when master absent', () => {
+  const tmp = createTempProject();
+  try {
+    writeChangeFile(tmp, 'add-payments', 'proposal.md', '#');
+    writeChangeFile(tmp, 'add-payments', 'tasks.md', '-');
+    writeChangeFile(tmp, 'add-payments', 'specs/payments/spec.md', `## ADDED Requirements
+
+### Requirement: Charge Card
+body
+#### Scenario: ok
+- WHEN x
+- THEN y
+`);
+    const result = change.diffChange(tmp, 'add-payments');
+    const cap = result.capabilities[0];
+    assert.strictEqual(cap.new_capability, true);
+    assert.ok(cap.stats.additions > 0);
+  } finally { cleanup(tmp); }
+});
+
+test('diffChange rejects invalid id', () => {
+  const result = change.diffChange('/tmp', 'Bad_ID');
+  assert.strictEqual(result.ok, false);
+  assert.ok(result.error.includes('invalid'));
+});
+
+test('diffChange rejects nonexistent change', () => {
+  const tmp = createTempProject();
+  try {
+    const result = change.diffChange(tmp, 'ghost');
+    assert.strictEqual(result.ok, false);
+    assert.ok(result.error.includes('not found'));
+  } finally { cleanup(tmp); }
+});
+
+test('diffChange reports per-capability error when delta has semantic conflict', () => {
+  const tmp = createTempProject();
+  try {
+    writeMasterSpec(tmp, 'auth', MASTER_SPEC);
+    writeChangeFile(tmp, 'c', 'proposal.md', '#');
+    writeChangeFile(tmp, 'c', 'tasks.md', '-');
+    // MODIFIED a requirement that doesn't exist
+    writeChangeFile(tmp, 'c', 'specs/auth/spec.md', `## MODIFIED Requirements
+### Requirement: Nonexistent
+body
+#### Scenario: s
+- WHEN x
+- THEN y
+`);
+    const result = change.diffChange(tmp, 'c');
+    assert.strictEqual(result.ok, false);
+    assert.ok(result.capabilities[0].error.includes('not found'));
+  } finally { cleanup(tmp); }
+});
+
 test('archiveChange fails cleanly on merge conflict', () => {
   const tmp = createTempProject();
   try {

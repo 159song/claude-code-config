@@ -402,6 +402,136 @@ function todayStamp() {
   return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 }
 
+// LCS 动态规划，返回 [{type: 'keep'|'add'|'del', text: string}] 的脚本序列
+// 实现简洁不追求极致性能 —— spec 文件通常 <500 行，够用
+function lcsDiff(aLines, bLines) {
+  const n = aLines.length;
+  const m = bLines.length;
+  const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      if (aLines[i] === bLines[j]) dp[i][j] = dp[i + 1][j + 1] + 1;
+      else dp[i][j] = Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+  const out = [];
+  let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (aLines[i] === bLines[j]) { out.push({ type: 'keep', text: aLines[i] }); i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) { out.push({ type: 'del', text: aLines[i] }); i++; }
+    else { out.push({ type: 'add', text: bLines[j] }); j++; }
+  }
+  while (i < n) { out.push({ type: 'del', text: aLines[i++] }); }
+  while (j < m) { out.push({ type: 'add', text: bLines[j++] }); }
+  return out;
+}
+
+// 把 LCS 脚本渲染为统一 diff 格式（带 ± 前缀，上下文 3 行）
+function renderUnifiedDiff(ops, header) {
+  const context = 3;
+  // 按 hunk 切分：连续的 keep 超过 2*context 时收缩
+  const lines = [];
+  if (header) lines.push(header);
+
+  // 先把连续 keep 标出位置
+  const n = ops.length;
+  let i = 0;
+  while (i < n) {
+    // 跳过 keep 直到遇到 add/del
+    let changeIdx = i;
+    while (changeIdx < n && ops[changeIdx].type === 'keep') changeIdx++;
+    if (changeIdx >= n) break;
+
+    // hunk 起点：往前回退最多 context 行 keep
+    const hunkStart = Math.max(i, changeIdx - context);
+
+    // 找 hunk 结束：last change + context 行
+    let scan = changeIdx;
+    let lastChange = changeIdx;
+    while (scan < n) {
+      if (ops[scan].type !== 'keep') lastChange = scan;
+      // 如果连续 keep 超过 2*context，断 hunk
+      let keepRun = 0;
+      let peek = scan;
+      while (peek < n && ops[peek].type === 'keep') { keepRun++; peek++; }
+      if (keepRun > 2 * context && peek < n) {
+        lastChange = scan;
+        // hunk 结束于 lastChange + context
+        break;
+      }
+      scan++;
+    }
+    const hunkEnd = Math.min(n, lastChange + context + 1);
+
+    // 输出 hunk（不按 git 风格算 @@ 行号，保持人类可读 + 机器易解析）
+    lines.push('@@ hunk @@');
+    for (let k = hunkStart; k < hunkEnd; k++) {
+      const op = ops[k];
+      const prefix = op.type === 'add' ? '+' : op.type === 'del' ? '-' : ' ';
+      lines.push(prefix + op.text);
+    }
+    i = hunkEnd;
+  }
+  return lines.join('\n');
+}
+
+// 为单个 capability 计算 diff：把 delta 应用到主 spec（不写盘），返回 before/after/diff
+function diffCapability(cwd, changeDir, capability) {
+  const deltaPath = path.join(changeDir, 'specs', capability, 'spec.md');
+  const deltaContent = utils.readFile(deltaPath);
+  if (deltaContent === null) {
+    return { capability, error: 'delta file not found' };
+  }
+  const delta = parseDelta(deltaContent);
+
+  const masterPath = path.join(cwd, '.planning', 'specs', capability, 'spec.md');
+  const master = utils.readFile(masterPath);
+
+  let after;
+  try {
+    after = applyDeltaToSpec(master, delta, { capability, allowCreate: master === null });
+  } catch (e) {
+    return { capability, error: e.message };
+  }
+
+  const before = master || '';
+  const ops = lcsDiff(before.split('\n'), after.split('\n'));
+  const stats = ops.reduce(
+    (a, o) => {
+      if (o.type === 'add') a.additions++;
+      else if (o.type === 'del') a.deletions++;
+      return a;
+    },
+    { additions: 0, deletions: 0 }
+  );
+
+  return {
+    capability,
+    master_path: masterPath,
+    delta_path: deltaPath,
+    new_capability: master === null,
+    stats,
+    diff: renderUnifiedDiff(ops, `--- specs/${capability}/spec.md (before)\n+++ specs/${capability}/spec.md (after change: ${path.basename(changeDir)})`)
+  };
+}
+
+function diffChange(cwd, id) {
+  if (!validChangeId(id)) return { ok: false, error: 'invalid change id: ' + id };
+  const changeDir = path.join(cwd, '.planning', CHANGES_DIR, id);
+  if (!fs.existsSync(changeDir)) return { ok: false, error: 'change not found: ' + changeDir };
+  const deltaFiles = listDeltaFiles(changeDir);
+  if (deltaFiles.length === 0) return { ok: false, error: 'no delta files under specs/' };
+
+  const capabilities = deltaFiles.map(d => diffCapability(cwd, changeDir, d.capability));
+  const hasError = capabilities.some(c => c.error);
+  return {
+    ok: !hasError,
+    id,
+    path: changeDir,
+    capabilities
+  };
+}
+
 // 把 change 合并到主 specs/，移动到 archive/YYYY-MM-DD-<id>/
 function archiveChange(cwd, id, options) {
   options = options || {};
@@ -491,7 +621,32 @@ function run(cwd, args) {
     process.exit(result.ok ? 0 : 1);
   }
 
-  utils.error('用法: wf-tools change [list|show <id>|validate <id>|archive <id> [--dry-run]]');
+  if (sub === 'diff') {
+    const id = args[1];
+    if (!id) { utils.error('用法: wf-tools change diff <id> [--json]'); process.exit(1); }
+    const result = diffChange(cwd, id);
+    if (args.includes('--json')) {
+      utils.output(result);
+    } else {
+      // 人类可读：直接把每个 capability 的 diff 段打印出来
+      if (!result.ok && result.error) {
+        utils.error(result.error);
+        process.exit(1);
+      }
+      for (const cap of result.capabilities) {
+        if (cap.error) {
+          utils.error(`[${cap.capability}] ${cap.error}`);
+          continue;
+        }
+        const tag = cap.new_capability ? ' (NEW CAPABILITY)' : '';
+        const stats = `+${cap.stats.additions} -${cap.stats.deletions}`;
+        process.stdout.write(`\n=== ${cap.capability}${tag} (${stats}) ===\n${cap.diff}\n`);
+      }
+    }
+    process.exit(result.ok ? 0 : 1);
+  }
+
+  utils.error('用法: wf-tools change [list|show <id>|validate <id>|archive <id> [--dry-run]|diff <id> [--json]]');
   process.exit(1);
 }
 
@@ -504,6 +659,10 @@ module.exports = {
   showChange,
   validateChange,
   archiveChange,
+  diffChange,
+  diffCapability,
+  lcsDiff,
+  renderUnifiedDiff,
   run,
   CHANGE_ID_PATTERN
 };
