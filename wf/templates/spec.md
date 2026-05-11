@@ -8,7 +8,9 @@
 
 <!--
 本节列出该 capability 下的所有需求。每个需求必须：
-  1) 有稳定的 header 文本（作为 requirement ID，不要随意改名）
+  1) 有稳定的 header 文本（作为主要 ID），强烈建议再加一个可选的稳定 ID 注释
+     `<!-- req-id: <STABLE-ID> -->` 作为机器友好的长期标识，这样 header 改名
+     不会打断追溯链（Phase D-2）。
   2) 至少包含一个 Scenario
   3) 用 SHALL / MUST / SHOULD 等 RFC 2119 词汇表述
 参考 OpenSpec 的 Requirement/Scenario 模型：
@@ -17,6 +19,8 @@
 -->
 
 ### Requirement: {{requirement_name}}
+
+<!-- req-id: {{STABLE-ID}} -->
 
 {{用 SHALL/MUST 句式描述系统必须具备的行为。一到三句话。}}
 

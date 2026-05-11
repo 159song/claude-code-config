@@ -224,6 +224,14 @@ CLI 对应：`wf-tools change list/show/validate/archive`。Archive 采用 fail-
 - `/wf-quick --spec <任务>` 走规格级短链路：propose → validate → apply → archive，绕过 PLAN.md
 - `wf-prompt-guard` 自动覆盖 `specs/` 和 `changes/`（路径前缀匹配 `.planning/`）
 
+### 进阶能力（Phase D）
+
+| 能力 | 命令 |
+|---|---|
+| 变更可视化预览 | `wf-tools change diff <id> [--json]` 展示 apply 前后主 spec 的行级 unified diff |
+| 稳定 requirement ID | 在 requirement body 加 `<!-- req-id: STABLE-ID -->`；MODIFIED/REMOVED/RENAMED 按 id 优先匹配；RENAMED 支持 `- From: @id:<id>` |
+| 反向追踪 | `wf-tools spec coverage <FR-N\|requirement\|capability\|id>` 扫 REQUIREMENTS/specs/phase/changes/git log，返回结构化 traces |
+
 ---
 
 ## Agent

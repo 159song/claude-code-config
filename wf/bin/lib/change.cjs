@@ -19,6 +19,14 @@ const CHANGES_DIR = 'changes';
 const ARCHIVE_DIR = 'archive';
 const CHANGE_ID_PATTERN = /^[a-z][a-z0-9-]*$/;
 const DELTA_SECTION_PATTERN = /^##\s+(ADDED|MODIFIED|REMOVED|RENAMED)\s+Requirements\s*$/;
+// 与 spec.cjs 保持一致的稳定 ID 识别
+const REQ_ID_PATTERN = /<!--\s*req-id\s*:\s*([A-Za-z0-9._-]+)\s*-->/;
+
+function extractBlockId(block) {
+  if (!block) return null;
+  const m = block.match(REQ_ID_PATTERN);
+  return m ? m[1] : null;
+}
 
 // 将 change_id 校验抽出
 function validChangeId(id) {
@@ -107,7 +115,11 @@ function parseDelta(content) {
   for (const op of ['ADDED', 'MODIFIED', 'REMOVED']) {
     const { requirements } = splitRequirements(sections[op]);
     const key = op.toLowerCase();
-    result[key] = requirements.map(r => ({ name: r.name, block: r.block }));
+    result[key] = requirements.map(r => ({
+      name: r.name,
+      id: extractBlockId(r.block),
+      block: r.block
+    }));
   }
 
   // RENAMED：抽出 From 行，body 仅保留新内容（不含 header 行、不含 From 行）
@@ -122,7 +134,14 @@ function parseDelta(content) {
       .replace(/^-\s+From:\s+.+?\s*$/m, '')
       .replace(/\n{3,}/g, '\n\n')
       .trim();
-    result.renamed.push({ name: r.name, from, body });
+    // RENAMED 支持两种 From 写法：
+    //   1) "- From: <old-header>"                 - 按 header 定位旧条目（传统，Phase B）
+    //   2) "- From: @id:<stable-id>"              - 按稳定 id 定位（Phase D-2，对改名最安全）
+    // 若 from 空但 body 里含 req-id 注释，也认为是"按 id 定位"（id 到 id 的强绑定）
+    const byId = from && from.startsWith('@id:') ? from.slice(4).trim() : null;
+    const fromHeader = byId ? null : from;
+    const idFromBody = extractBlockId(body);
+    result.renamed.push({ name: r.name, from: fromHeader, from_id: byId || idFromBody, body });
   }
 
   return result;
@@ -145,8 +164,9 @@ function validateDelta(delta) {
   }
 
   for (const r of delta.renamed) {
-    if (!r.from) {
-      issues.push({ level: 'error', op: 'renamed', requirement: r.name, message: 'RENAMED requirement missing From line (expected "- From: <old-name>")' });
+    // RENAMED 必须提供 from（header 或 @id:<id>）或 from_id（从 body 的 req-id 推断）
+    if (!r.from && !r.from_id) {
+      issues.push({ level: 'error', op: 'renamed', requirement: r.name, message: 'RENAMED requirement missing From line (expected "- From: <old-name>" or "- From: @id:<stable-id>")' });
     }
     if (r.from && r.from === r.name) {
       issues.push({ level: 'error', op: 'renamed', requirement: r.name, message: 'RENAMED From == new name (no-op)' });
@@ -182,67 +202,89 @@ function applyDeltaToSpec(masterContent, delta, context) {
 
   // 先把 master 拆成 requirements 列表 + 记录 Requirements section 位置
   const split = splitRequirements(content);
-  const existing = new Map(split.requirements.map(r => [r.name, r]));
+  // 为每个 master requirement 抽 id（可为 null）
+  const masterEntries = split.requirements.map(r => ({ name: r.name, id: extractBlockId(r.block), block: r.block }));
 
-  // === 校验阶段（fail-fast，确保任何一步都能成功） ===
+  // 定位工具：先 id 后 header
+  const findByIdOrName = (idQuery, nameQuery) => {
+    if (idQuery) {
+      const idx = masterEntries.findIndex(e => e.id === idQuery);
+      if (idx >= 0) return idx;
+    }
+    if (nameQuery) {
+      const idx = masterEntries.findIndex(e => e.name === nameQuery);
+      if (idx >= 0) return idx;
+    }
+    return -1;
+  };
+  const existsByIdOrName = (idQuery, nameQuery) => findByIdOrName(idQuery, nameQuery) >= 0;
+
+  // === 校验阶段（fail-fast） ===
 
   for (const r of delta.added) {
-    if (existing.has(r.name)) {
+    // ADDED：新 id 不应与主 spec 任何 id 冲突；新 header 也不应重复
+    if (r.id && masterEntries.some(e => e.id === r.id)) {
+      throw new Error(`ADDED req-id '${r.id}' already exists in master spec`);
+    }
+    if (masterEntries.some(e => e.name === r.name)) {
       throw new Error(`ADDED '${r.name}' already exists in master spec`);
     }
   }
   for (const r of delta.modified) {
-    if (!existing.has(r.name)) {
-      throw new Error(`MODIFIED '${r.name}' not found in master spec`);
+    if (!existsByIdOrName(r.id, r.name)) {
+      throw new Error(`MODIFIED '${r.id ? '@id:' + r.id : r.name}' not found in master spec`);
     }
   }
   for (const r of delta.removed) {
-    if (!existing.has(r.name)) {
-      throw new Error(`REMOVED '${r.name}' not found in master spec`);
+    if (!existsByIdOrName(r.id, r.name)) {
+      throw new Error(`REMOVED '${r.id ? '@id:' + r.id : r.name}' not found in master spec`);
     }
   }
   for (const r of delta.renamed) {
-    if (!r.from) {
+    if (!r.from && !r.from_id) {
       throw new Error(`RENAMED '${r.name}' missing '- From:' line`);
     }
-    if (!existing.has(r.from)) {
-      throw new Error(`RENAMED From '${r.from}' not found in master spec`);
+    if (!existsByIdOrName(r.from_id, r.from)) {
+      const label = r.from_id ? '@id:' + r.from_id : r.from;
+      throw new Error(`RENAMED From '${label}' not found in master spec`);
     }
-    if (existing.has(r.name) && r.name !== r.from) {
+    // 目标 header 冲突：只有当目标 header 不是 From 指向的同一条时才报错
+    const fromIdx = findByIdOrName(r.from_id, r.from);
+    const targetIdx = masterEntries.findIndex(e => e.name === r.name);
+    if (targetIdx >= 0 && targetIdx !== fromIdx) {
       throw new Error(`RENAMED target '${r.name}' already exists in master spec`);
     }
   }
 
   // === 应用阶段 ===
 
-  // 用一个有序数组来表示最终 requirements 列表
-  const ordered = split.requirements.slice();
+  const ordered = masterEntries.slice();
 
-  // MODIFIED：按 name 替换整块
+  // MODIFIED：按 id 优先 / header 次之 定位，整块替换
   for (const r of delta.modified) {
-    const idx = ordered.findIndex(x => x.name === r.name);
-    ordered[idx] = { name: r.name, block: r.block };
+    const idx = findByIdOrName(r.id, r.name);
+    ordered[idx] = { name: r.name, id: r.id || ordered[idx].id, block: r.block };
   }
 
-  // REMOVED：按 name 删除
+  // REMOVED：按 id 优先 / header 次之 删除
   for (const r of delta.removed) {
-    const idx = ordered.findIndex(x => x.name === r.name);
+    const idx = findByIdOrName(r.id, r.name);
     if (idx >= 0) ordered.splice(idx, 1);
   }
 
-  // RENAMED：改 header 名；若 body 非空则替换 body，否则保留原 body
+  // RENAMED：按 id 优先 / header 次之 定位；body 非空则替换，否则仅改 header
   for (const r of delta.renamed) {
-    const idx = ordered.findIndex(x => x.name === r.from);
+    const idx = findByIdOrName(r.from_id, r.from);
     if (idx < 0) continue;
     const newBlock = r.body
       ? `### Requirement: ${r.name}\n\n${r.body}`
       : ordered[idx].block.replace(/^### Requirement:.*$/m, `### Requirement: ${r.name}`);
-    ordered[idx] = { name: r.name, block: newBlock };
+    ordered[idx] = { name: r.name, id: r.from_id || ordered[idx].id, block: newBlock };
   }
 
-  // ADDED：追加到末尾
+  // ADDED：追加
   for (const r of delta.added) {
-    ordered.push({ name: r.name, block: r.block });
+    ordered.push({ name: r.name, id: r.id, block: r.block });
   }
 
   // 重建 markdown：preamble + requirements，用空行分隔，保证每个 block 之间有空行
@@ -362,33 +404,41 @@ function validateChange(cwd, id) {
       issues.push({ ...it, capability: d.capability });
     }
 
-    // 语义校验：MODIFIED/REMOVED/RENAMED 的目标在主 spec 里必须存在
-    // ADDED 在主 spec 里必须不存在
+    // 语义校验：id 优先、header 次之
     const masterPath = path.join(specsRoot, d.capability, 'spec.md');
     const master = utils.readFile(masterPath);
     const masterSplit = master ? splitRequirements(master) : { requirements: [] };
-    const masterNames = new Set(masterSplit.requirements.map(r => r.name));
+    const masterEntries = masterSplit.requirements.map(r => ({ name: r.name, id: extractBlockId(r.block) }));
+    const hasById = id => id && masterEntries.some(e => e.id === id);
+    const hasByName = name => name && masterEntries.some(e => e.name === name);
 
     for (const r of delta.added) {
-      if (masterNames.has(r.name)) {
-        issues.push({ level: 'error', capability: d.capability, requirement: r.name, message: 'ADDED requirement already exists in master spec' });
+      if (r.id && hasById(r.id)) {
+        issues.push({ level: 'error', capability: d.capability, requirement: r.name, id: r.id, message: 'ADDED req-id already exists in master spec' });
+      }
+      if (hasByName(r.name)) {
+        issues.push({ level: 'error', capability: d.capability, requirement: r.name, message: 'ADDED requirement header already exists in master spec' });
       }
     }
     for (const r of delta.modified) {
-      if (!masterNames.has(r.name)) {
-        issues.push({ level: 'error', capability: d.capability, requirement: r.name, message: 'MODIFIED requirement not found in master spec' });
+      if (!hasById(r.id) && !hasByName(r.name)) {
+        issues.push({ level: 'error', capability: d.capability, requirement: r.name, id: r.id || undefined, message: 'MODIFIED requirement not found in master spec (by id or header)' });
       }
     }
     for (const r of delta.removed) {
-      if (!masterNames.has(r.name)) {
-        issues.push({ level: 'error', capability: d.capability, requirement: r.name, message: 'REMOVED requirement not found in master spec' });
+      if (!hasById(r.id) && !hasByName(r.name)) {
+        issues.push({ level: 'error', capability: d.capability, requirement: r.name, id: r.id || undefined, message: 'REMOVED requirement not found in master spec (by id or header)' });
       }
     }
     for (const r of delta.renamed) {
-      if (r.from && !masterNames.has(r.from)) {
-        issues.push({ level: 'error', capability: d.capability, requirement: r.name, message: `RENAMED From '${r.from}' not found in master spec` });
+      const foundFromId = r.from_id && hasById(r.from_id);
+      const foundFromHeader = r.from && hasByName(r.from);
+      if (!foundFromId && !foundFromHeader) {
+        const label = r.from_id ? '@id:' + r.from_id : r.from;
+        issues.push({ level: 'error', capability: d.capability, requirement: r.name, message: `RENAMED From '${label}' not found in master spec` });
       }
-      if (masterNames.has(r.name) && r.name !== r.from) {
+      // 目标 header 冲突：只在新名字已存在且不是 From 指向的同一条时报错
+      if (hasByName(r.name) && r.name !== r.from) {
         issues.push({ level: 'error', capability: d.capability, requirement: r.name, message: 'RENAMED target name already exists in master spec' });
       }
     }

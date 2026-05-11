@@ -1004,3 +1004,61 @@ REQUIREMENTS.md 保留为**跨 capability 的需求索引**，specs/ 是**按 ca
 - 存在活跃 change 时产生 warning
 - `archive/` 子目录不会被误认为活跃 change
 - 跨里程碑 reset 时 `specs/` 保留
+
+---
+
+## 进阶加固（Phase D）
+
+三项可选进阶能力。全部保持默认向后兼容：不声明 id 时行为与 Phase A/B 完全一致。
+
+### D-1：`wf-tools change diff <id>` 可视化预览
+
+纯 JavaScript 实现的 LCS 行级 unified diff，展示"change apply 后主 spec 会变成什么样"，**不修改任何文件**。审阅前的第一件事：
+
+```bash
+wf-tools change diff add-oauth            # 人类可读
+wf-tools change diff add-oauth --json     # 结构化（capability/stats/diff 字段）
+```
+
+每个 capability 独立显示：`+N -M` 统计、新 capability 标记、带 ± 前缀的 hunk（上下文 3 行）。
+
+### D-2：稳定 requirement ID
+
+在 requirement body 或 scenario body 中加入 `<!-- req-id: <STABLE-ID> -->` 即声明稳定标识。id 字符集：`[A-Za-z0-9._-]`。
+
+- `parseSpec` 自动抽取 id 存入 `req.id`
+- `listSpecs` 结果附带 `requirement_ids: [...]`
+- `validateOne` 检查 id 在 spec 内唯一（duplicate 报 error）
+- change delta 的 ADDED/MODIFIED/REMOVED 的匹配策略：**id 优先，header 次之**
+  - MODIFIED 可以同时改 header + id 保留
+  - REMOVED 通过 id 定位，header 可任意
+- RENAMED 支持新语法：`- From: @id:<stable-id>`，不再依赖旧 header 文本
+- coverage 查询支持直接传 id：`wf-tools spec coverage AUTH-LOGIN`，`detail.match = "requirement id"`
+
+**向后兼容**：没有 id 的 spec / delta 全部按 header 匹配，Phase A/B 已有产出不受影响（回归测试 77 个全部原样通过）。
+
+### D-3：`wf-tools spec coverage <query>` 反向追踪
+
+解决 WF 在"需求 → 实现"追溯上的历史缺口。给定 `FR-N` / requirement header / capability 名 / 稳定 id，扫描：
+
+1. `REQUIREMENTS.md`（FR-N 按词边界匹配，`FR-1` 不会误命中 `FR-10`）
+2. `specs/<cap>/spec.md`（capability 名、requirement header、requirement id）
+3. `phase-N/{PLAN,SUMMARY,VERIFICATION,CONTEXT}.md`（文本匹配）
+4. `changes/<id>/specs/<cap>/spec.md`（active，requirement header 优先）
+5. `changes/archive/<stamp-id>/specs/<cap>/spec.md`（archived，与 active 分开上报）
+6. `git log --grep`（最多 10 条，忽略错误）
+
+输出结构化 traces：`{ query, total, traces: [{ source, detail }] }`。
+
+### 测试
+
+- D-1：`change.test.cjs` +11 用例
+- D-3：`spec.test.cjs` +8 用例
+- D-2：`spec.test.cjs` +6（id 解析/唯一性/coverage 命中）+ `change.test.cjs` +6（MODIFIED/REMOVED/RENAMED by id、向后兼容回归）
+
+Phase A+B+C+D 累计 **107/107 测试通过**。
+
+### 下一步（可选）
+
+- 把 `wf-proposer` 与 `wf-planner` 合并为按 prompt 参数切换的双模式，降低维护成本
+- `wf-tools change diff` 增加 `--html` 输出以便贴到 code review 评论

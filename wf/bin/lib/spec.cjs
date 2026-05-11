@@ -12,6 +12,16 @@ const utils = require('./utils.cjs');
 
 const SPECS_DIR = 'specs';
 const CAPABILITY_PATTERN = /^[a-z][a-z0-9-]*$/;
+// 稳定 ID：HTML 注释形式 `<!-- req-id: AUTH-LOGIN -->`（单行，大小写不敏感的 key）
+// 允许字母数字 + 连字符 + 下划线 + 点（留足命名空间）
+const REQ_ID_PATTERN = /<!--\s*req-id\s*:\s*([A-Za-z0-9._-]+)\s*-->/;
+
+// 在一段 requirement body 文本中提取稳定 id（仅取第一个命中；多个 id 视为未声明以保持简单）
+function extractReqId(text) {
+  if (!text) return null;
+  const m = text.match(REQ_ID_PATTERN);
+  return m ? m[1] : null;
+}
 
 // 解析 <capability>/spec.md -> 结构化对象
 function parseSpec(content) {
@@ -66,7 +76,7 @@ function parseSpec(content) {
     if (section === 'requirements' && line.startsWith('### Requirement:')) {
       flushBuffer();
       const name = line.slice('### Requirement:'.length).trim();
-      currentReq = { name, body: '', scenarios: [] };
+      currentReq = { name, id: null, body: '', scenarios: [] };
       result.requirements.push(currentReq);
       currentScenario = null;
       continue;
@@ -86,6 +96,12 @@ function parseSpec(content) {
   }
 
   flushBuffer();
+
+  // 在 body + 每个 scenario body 中查找稳定 id
+  for (const req of result.requirements) {
+    const pool = req.body + '\n' + req.scenarios.map(s => s.body).join('\n');
+    req.id = extractReqId(pool);
+  }
 
   return result;
 }
@@ -125,6 +141,7 @@ function listSpecs(cwd) {
       path: specPath,
       requirement_count: parsed.requirements.length,
       scenario_count: parsed.requirements.reduce((n, r) => n + r.scenarios.length, 0),
+      requirement_ids: parsed.requirements.filter(r => r.id).map(r => r.id),
       purpose: parsed.purpose.split('\n')[0] || ''
     });
   }
@@ -179,6 +196,7 @@ function validateOne(cwd, capability, options) {
   }
 
   const seenReqNames = new Map();
+  const seenReqIds = new Map();
   for (const req of parsed.requirements) {
     if (!req.name) {
       issues.push({ level: 'error', capability, message: '### Requirement: has empty name' });
@@ -188,6 +206,13 @@ function validateOne(cwd, capability, options) {
       issues.push({ level: 'error', capability, requirement: req.name, message: 'duplicate requirement name' });
     }
     seenReqNames.set(req.name, true);
+
+    if (req.id) {
+      if (seenReqIds.has(req.id)) {
+        issues.push({ level: 'error', capability, requirement: req.name, id: req.id, message: 'duplicate req-id within spec' });
+      }
+      seenReqIds.set(req.id, true);
+    }
 
     if (!req.body) {
       issues.push({ level: 'warn', capability, requirement: req.name, message: 'requirement has no descriptive body before scenarios' });

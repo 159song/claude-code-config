@@ -52,3 +52,12 @@
 - From: {{old_requirement_name}}
 
 {{可选：若同时修改内容，写在 From 行之后；否则保留原样内容。}}
+
+<!--
+Phase D-2：如果 master requirement 已声明稳定 id，RENAMED 可以用
+`- From: @id:<stable-id>` 绕开 header 文本匹配，适合连续改名的场景。
+例：
+  ### Requirement: User Authentication
+  - From: @id:AUTH-LOGIN
+-->
+

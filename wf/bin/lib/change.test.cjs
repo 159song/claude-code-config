@@ -690,6 +690,154 @@ body
   } finally { cleanup(tmp); }
 });
 
+// ============================================================
+// Phase D-2: stable req-id matching (id-first, header-fallback)
+// ============================================================
+
+const MASTER_WITH_IDS = `# Auth Specification
+
+## Purpose
+x.
+
+## Requirements
+
+### Requirement: User Login
+
+<!-- req-id: AUTH-LOGIN -->
+
+body.
+
+#### Scenario: valid
+- **WHEN** valid creds
+- **THEN** token
+`;
+
+test('parseDelta extracts id from ADDED/MODIFIED block', () => {
+  const delta = change.parseDelta(`## ADDED Requirements
+
+### Requirement: Reset
+<!-- req-id: AUTH-RESET -->
+body
+#### Scenario: s
+- WHEN x
+- THEN y
+`);
+  assert.strictEqual(delta.added[0].id, 'AUTH-RESET');
+});
+
+test('MODIFIED by id works even when header was renamed in delta', () => {
+  const tmp = createTempProject();
+  try {
+    writeMasterSpec(tmp, 'auth', MASTER_WITH_IDS);
+    writeChangeFile(tmp, 'mod-by-id', 'proposal.md', '#');
+    writeChangeFile(tmp, 'mod-by-id', 'tasks.md', '-');
+    writeChangeFile(tmp, 'mod-by-id', 'specs/auth/spec.md', `## MODIFIED Requirements
+
+### Requirement: User Sign-In
+<!-- req-id: AUTH-LOGIN -->
+
+OAuth added.
+
+#### Scenario: s
+- **WHEN** x
+- **THEN** y
+`);
+    // Validate: id matches even though header text differs
+    const r = change.validateChange(tmp, 'mod-by-id');
+    assert.strictEqual(r.valid, true);
+    // Archive merges correctly
+    const arch = change.archiveChange(tmp, 'mod-by-id');
+    assert.strictEqual(arch.ok, true);
+    const merged = require('fs').readFileSync(require('path').join(tmp, '.planning', 'specs', 'auth', 'spec.md'), 'utf8');
+    assert.ok(merged.includes('### Requirement: User Sign-In'), 'header should be updated');
+    assert.ok(!merged.includes('### Requirement: User Login'), 'old header removed');
+    assert.ok(merged.includes('AUTH-LOGIN'), 'id preserved');
+  } finally { cleanup(tmp); }
+});
+
+test('REMOVED by id works', () => {
+  const tmp = createTempProject();
+  try {
+    writeMasterSpec(tmp, 'auth', MASTER_WITH_IDS);
+    writeChangeFile(tmp, 'rm-by-id', 'proposal.md', '#');
+    writeChangeFile(tmp, 'rm-by-id', 'tasks.md', '-');
+    writeChangeFile(tmp, 'rm-by-id', 'specs/auth/spec.md', `## REMOVED Requirements
+
+### Requirement: Anything At All
+<!-- req-id: AUTH-LOGIN -->
+reason: deprecated
+`);
+    const arch = change.archiveChange(tmp, 'rm-by-id');
+    assert.strictEqual(arch.ok, true);
+    const merged = require('fs').readFileSync(require('path').join(tmp, '.planning', 'specs', 'auth', 'spec.md'), 'utf8');
+    assert.ok(!merged.includes('AUTH-LOGIN'));
+  } finally { cleanup(tmp); }
+});
+
+test('RENAMED with @id:<id> syntax (no header From needed)', () => {
+  const tmp = createTempProject();
+  try {
+    writeMasterSpec(tmp, 'auth', MASTER_WITH_IDS);
+    writeChangeFile(tmp, 'rename-by-id', 'proposal.md', '#');
+    writeChangeFile(tmp, 'rename-by-id', 'tasks.md', '-');
+    writeChangeFile(tmp, 'rename-by-id', 'specs/auth/spec.md', `## RENAMED Requirements
+
+### Requirement: User Authentication
+
+- From: @id:AUTH-LOGIN
+`);
+    const arch = change.archiveChange(tmp, 'rename-by-id');
+    assert.strictEqual(arch.ok, true);
+    const merged = require('fs').readFileSync(require('path').join(tmp, '.planning', 'specs', 'auth', 'spec.md'), 'utf8');
+    assert.ok(merged.includes('### Requirement: User Authentication'));
+    assert.ok(!merged.includes('### Requirement: User Login'));
+    assert.ok(merged.includes('AUTH-LOGIN'), 'id preserved across rename');
+  } finally { cleanup(tmp); }
+});
+
+test('ADDED rejects when req-id already exists in master', () => {
+  const tmp = createTempProject();
+  try {
+    writeMasterSpec(tmp, 'auth', MASTER_WITH_IDS);
+    writeChangeFile(tmp, 'dup-id', 'proposal.md', '#');
+    writeChangeFile(tmp, 'dup-id', 'tasks.md', '-');
+    writeChangeFile(tmp, 'dup-id', 'specs/auth/spec.md', `## ADDED Requirements
+
+### Requirement: Totally Different
+<!-- req-id: AUTH-LOGIN -->
+body
+#### Scenario: s
+- WHEN x
+- THEN y
+`);
+    const r = change.validateChange(tmp, 'dup-id');
+    assert.strictEqual(r.valid, false);
+    assert.ok(r.issues.some(i => i.message.includes('req-id already exists')));
+  } finally { cleanup(tmp); }
+});
+
+test('backward compat: header-based delta still works when no ids involved', () => {
+  // Ensures Phase A/B-era deltas archive without IDs — regression guard
+  const tmp = createTempProject();
+  try {
+    writeMasterSpec(tmp, 'auth', MASTER_SPEC); // no ids
+    writeChangeFile(tmp, 'legacy', 'proposal.md', '#');
+    writeChangeFile(tmp, 'legacy', 'tasks.md', '-');
+    writeChangeFile(tmp, 'legacy', 'specs/auth/spec.md', `## MODIFIED Requirements
+
+### Requirement: User Login
+
+Rewritten.
+
+#### Scenario: valid credentials
+- **WHEN** valid
+- **THEN** token
+`);
+    const arch = change.archiveChange(tmp, 'legacy');
+    assert.strictEqual(arch.ok, true);
+  } finally { cleanup(tmp); }
+});
+
 test('archiveChange fails cleanly on merge conflict', () => {
   const tmp = createTempProject();
   try {

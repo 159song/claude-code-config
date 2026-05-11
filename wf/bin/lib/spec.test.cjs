@@ -454,3 +454,111 @@ test('coverageQuery returns error when .planning/ absent', () => {
     assert.ok(r.error && r.error.includes('.planning/'));
   } finally { cleanupTemp(tmp); }
 });
+
+// ============================================================
+// Phase D-2: stable requirement IDs
+// ============================================================
+
+test('parseSpec extracts req-id from requirement body', () => {
+  const content = `## Purpose
+x
+## Requirements
+### Requirement: Login
+<!-- req-id: AUTH-LOGIN -->
+body
+#### Scenario: s
+- WHEN x
+- THEN y
+`;
+  const parsed = spec.parseSpec(content);
+  assert.strictEqual(parsed.requirements[0].id, 'AUTH-LOGIN');
+});
+
+test('parseSpec extracts req-id from scenario body too', () => {
+  const content = `## Purpose
+x
+## Requirements
+### Requirement: Login
+body
+#### Scenario: s
+<!-- req-id: AUTH.LOGIN_V2 -->
+- WHEN x
+- THEN y
+`;
+  const parsed = spec.parseSpec(content);
+  assert.strictEqual(parsed.requirements[0].id, 'AUTH.LOGIN_V2');
+});
+
+test('parseSpec returns null id when absent', () => {
+  const parsed = spec.parseSpec(GOOD_SPEC);
+  assert.strictEqual(parsed.requirements[0].id, null);
+});
+
+test('listSpecs includes requirement_ids array', () => {
+  const tmp = createTempProject();
+  try {
+    writeSpec(tmp, 'auth', `# Auth
+## Purpose
+x
+## Requirements
+### Requirement: Login
+<!-- req-id: AUTH-LOGIN -->
+body
+#### Scenario: s
+- WHEN x
+- THEN y
+### Requirement: Reset
+body
+#### Scenario: s
+- WHEN x
+- THEN y
+`);
+    const r = spec.listSpecs(tmp);
+    assert.deepStrictEqual(r.capabilities[0].requirement_ids, ['AUTH-LOGIN']);
+  } finally { cleanupTemp(tmp); }
+});
+
+test('validateOne flags duplicate req-id within a spec', () => {
+  const tmp = createTempProject();
+  try {
+    writeSpec(tmp, 'auth', `# Auth
+## Purpose
+x
+## Requirements
+### Requirement: A
+<!-- req-id: AUTH-001 -->
+body
+#### Scenario: s
+- WHEN x
+- THEN y
+### Requirement: B
+<!-- req-id: AUTH-001 -->
+body
+#### Scenario: s
+- WHEN x
+- THEN y
+`);
+    const r = spec.validateOne(tmp, 'auth');
+    assert.strictEqual(r.valid, false);
+    assert.ok(r.issues.some(i => i.message.includes('duplicate req-id')));
+  } finally { cleanupTemp(tmp); }
+});
+
+test('coverageQuery finds requirement by its stable req-id', () => {
+  const tmp = createTempProject();
+  try {
+    writeSpec(tmp, 'auth', `# Auth
+## Purpose
+x
+## Requirements
+### Requirement: Login
+<!-- req-id: AUTH-LOGIN -->
+body
+#### Scenario: s
+- WHEN x
+- THEN y
+`);
+    const r = spec.coverageQuery(tmp, 'AUTH-LOGIN');
+    assert.ok(r.traces.some(t => t.source === 'specs/<capability>' && t.detail.match === 'requirement id'));
+  } finally { cleanupTemp(tmp); }
+});
