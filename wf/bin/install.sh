@@ -584,6 +584,11 @@ validate_install() {
     "${CLAUDE_DIR}/skills/wf-troubleshooting/SKILL.md"
     "${CLAUDE_DIR}/skills/wf-anti-patterns/SKILL.md"
     "${CLAUDE_DIR}/skills/wf-4-level-verification/SKILL.md"
+    "${CLAUDE_DIR}/skills/wf-progress/SKILL.md"
+    "${CLAUDE_DIR}/skills/wf-quick/SKILL.md"
+    "${CLAUDE_DIR}/skills/wf-new-project/SKILL.md"
+    "${CLAUDE_DIR}/skills/wf-execute-phase/SKILL.md"
+    "${CLAUDE_DIR}/skills/wf-autonomous/SKILL.md"
   )
 
   for f in "${critical_files[@]}"; do
