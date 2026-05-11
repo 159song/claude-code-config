@@ -14,7 +14,10 @@
     "code_review_max_iterations": 3,
     "auto_compact": true,
     "smoke_only_verify": true,
-    "continuation_checkpoint": true
+    "continuation_checkpoint": true,
+    "research_in_autonomous": false,
+    "verification_reuse_window_sec": 600,
+    "phase1_cold_start_window_sec": 3600
   },
   "planning": {
     "commit_docs": true
