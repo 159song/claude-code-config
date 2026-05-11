@@ -122,6 +122,53 @@ STATE_JSON=$(node "$HOME/.claude/wf/bin/wf-tools.cjs" state json)
 
 更新 CONTINUATION.md：`step: discuss`
 
+**新项目冷启动跳过（P1 优化）：**
+
+Phase 1 刚从 new-project 出来时，决策已由 5Q 问答与 4 路并行 research 收集，
+discuss-phase 会走过场。若满足以下**全部**条件，跳过 discuss 直接生成占位 CONTEXT.md：
+
+1. `phase === 1`（最小阶段号）
+2. `.planning/PROJECT.md` 存在且 mtime 在 `config.workflow.phase1_cold_start_window_sec`（默认 3600）秒内
+3. `.planning/phases/01-*/CONTEXT.md` 不存在（用户没有预先讨论）
+4. 未传 `--interactive` 标志（用户若显式要求交互则不跳）
+
+```bash
+COLD_START_WINDOW=$(echo "$CONFIG_JSON" | jq -r '.workflow.phase1_cold_start_window_sec // 3600')
+PHASE_DIR=$(ls -d .planning/phases/01-* 2>/dev/null | head -1)
+
+if [[ "$N" == "1" ]] && [[ "$FLAGS" != *"--interactive"* ]] \
+   && [[ -f .planning/PROJECT.md ]] \
+   && [[ -z "$PHASE_DIR" || ! -f "$PHASE_DIR/CONTEXT.md" ]]; then
+  PROJECT_AGE=$(( $(date +%s) - $(stat -f %m .planning/PROJECT.md 2>/dev/null || stat -c %Y .planning/PROJECT.md) ))
+  if [[ $PROJECT_AGE -lt $COLD_START_WINDOW ]]; then
+    COLD_START=true
+  fi
+fi
+```
+
+若 `COLD_START=true`：
+1. 确保 phase 目录存在：`node "$HOME/.claude/wf/bin/wf-tools.cjs" init phase-op 1 --ensure-dir`
+2. 生成占位 CONTEXT.md（保持 hook `has_context=true` 判定）：
+   ```markdown
+   ---
+   phase: 1
+   auto_generated: true
+   source: PROJECT.md
+   cold_start_window_sec: {{COLD_START_WINDOW}}
+   ---
+
+   # Phase 1 Context (Auto-Generated, P1 Cold-Start)
+
+   本阶段决策已在 new-project 阶段通过 5Q 问答与 4 路并行 research 收集，
+   详见 `.planning/PROJECT.md` 与 `.planning/REQUIREMENTS.md`。
+
+   若需补充决策，运行 `/wf-discuss-phase 1 --auto` 重新生成覆盖本文件。
+   ```
+3. 显示：`⏭ Phase 1 cold-start: 跳过 discuss（PROJECT.md 刚产出，决策已记录）`
+4. 跳到 2.3 Plan Phase
+
+**否则**走正常 discuss 流程：
+
 **Skill() 目标硬编码为已知值（T-05-02 mitigation）:**
 
 默认模式（无 --interactive 标志）：
