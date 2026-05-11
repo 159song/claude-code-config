@@ -1,5 +1,5 @@
 ---
-description: Apply WF git conventions - commit message scope (phase-N / change-id / milestone), branch naming (master/develop/feature/hotfix), and worktree merge strategy. Use when creating commits in a WF project, writing commit messages, tagging milestones, resolving worktree branches, or deciding which branch to create for new work.
+description: Apply WF git commit scope (phase-N / change-id / milestone), branch naming (master/develop/feature/hotfix), and worktree merge strategy. Use ONLY in WF projects (has .planning/ directory) when creating commits, writing commit messages, tagging milestones, resolving worktree branches, or deciding which branch to create. SKIP when committing in non-WF repos — fall back to the repo's own conventions or the global ~/.claude/CLAUDE.md defaults.
 user-invocable: true
 ---
 
