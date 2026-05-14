@@ -299,3 +299,5 @@ When compacting this conversation, preserve the following WF workflow state:
 6. **Last verification status**: PASS/WARN/FAIL results from the most recent phase
 
 After compaction, immediately check for `.planning/CONTINUATION.md` and resume the workflow from the recorded position. Do NOT ask the user what to do — read the checkpoint and continue automatically.
+
+> 与 claude-mem 共存时：若 SessionStart 同时注入了 claude-mem 的语义记忆段，将其视为补充上下文阅读，但 **`.planning/CONTINUATION.md` 仍是当前 phase/step 推进的唯一权威**——两者冲突时以 CONTINUATION 为准；claude-mem 的召回可能来自其他项目或更早阶段，不应直接当作当前任务指令。
