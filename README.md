@@ -76,6 +76,38 @@ cd claude-code-config
 
 > 旧入口 `./wf/bin/install.sh` 仍然可用（默认 **user**）。新入口 `./install.sh` 默认 **project**，契合"试试看"的一键场景。
 
+### 升级（已装过的机器）
+
+不需要 `git clone`，curl 一行即可拉最新代码并覆盖现有安装：
+
+```bash
+# 升级用户级（~/.claude/）
+curl -fsSL https://raw.githubusercontent.com/159song/claude-code-config/main/wf/bin/upgrade.sh | bash
+
+# 升级当前项目（cd 到目标项目根目录后执行）
+cd /path/to/your/project
+curl -fsSL https://raw.githubusercontent.com/159song/claude-code-config/main/wf/bin/upgrade.sh | bash -s -- --project
+
+# 预览不写盘
+curl -fsSL https://raw.githubusercontent.com/159song/claude-code-config/main/wf/bin/upgrade.sh | bash -s -- --dry-run
+
+# 指定分支或 tag
+curl -fsSL https://raw.githubusercontent.com/159song/claude-code-config/main/wf/bin/upgrade.sh | WF_REF=v1.1.0 bash
+```
+
+`upgrade.sh` 与 `install.sh` 的差别：
+
+| 维度 | `install.sh`（首装） | `upgrade.sh`（升级） |
+|---|---|---|
+| 拉源方式 | `git clone --depth 1` | tarball (`codeload.github.com`) |
+| 依赖 | curl, bash, **git**, node | curl, **tar**, bash, node（无需 git） |
+| `--force` | 默认 **不加**（按 VERSION 判定） | 默认 **自动加**（hotfix 不 bump VERSION 也能装上） |
+| 备份 | 升/降级时自动 `~/.claude/.wf-backup-*` | 同上（`--force` 触发） |
+| 临时目录 | 自管，结束自动清理 | 自管，结束自动清理 |
+| 关闭默认 force | — | `--no-force` |
+
+> 同一台机器同时有用户级和项目级安装时，两者要分别升级（用户级跑一次默认命令，每个项目目录里再跑一次 `--project`）。
+
 ### 验证
 
 在 Claude Code 中打开任意项目，状态栏应显示：
@@ -501,6 +533,20 @@ WF 集成了用户全局 `~/.claude/CLAUDE.md` 的 Git 规范并做 WF 特定扩
 4. **复制文件** — 77 个文件，涵盖命令、Agent、Hook、Workflow、参考文档、模板、CLI 工具
 5. **合并 settings** — `merge-settings.cjs` 保留你现有的 Hook、权限和环境变量，同时添加 WF Hook
 6. **验证** — 确认关键文件存在、JSON 合法、`wf-tools.cjs` 冒烟测试通过
+
+### 升级
+
+已装机器升级到最新 main，**无需 git**：
+
+```bash
+# 用户级
+curl -fsSL https://raw.githubusercontent.com/159song/claude-code-config/main/wf/bin/upgrade.sh | bash
+
+# 项目级（先 cd 到目标项目）
+curl -fsSL https://raw.githubusercontent.com/159song/claude-code-config/main/wf/bin/upgrade.sh | bash -s -- --project
+```
+
+`upgrade.sh` 走 GitHub tarball + 内嵌临时目录，默认追加 `--force`（应对 hotfix 不 bump `VERSION` 的常见情况）。完整用法见顶部"快速开始 → 升级"。
 
 ### Settings 合并策略
 

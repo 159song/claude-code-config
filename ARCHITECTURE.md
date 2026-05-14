@@ -125,6 +125,12 @@
     ./wf/bin/install.sh --force      # 强制重新安装
     ./wf/bin/install.sh --uninstall  # 卸载 WF
 
+  远程升级 (无需 git clone, 走 GitHub tarball):
+    curl -fsSL https://raw.githubusercontent.com/159song/claude-code-config/main/wf/bin/upgrade.sh | bash
+    curl -fsSL https://raw.githubusercontent.com/159song/claude-code-config/main/wf/bin/upgrade.sh | bash -s -- --project
+    # 默认追加 --force 应对 hotfix 不 bump VERSION 的情况; --no-force 关闭
+    # 实现: wf/bin/upgrade.sh, 仅依赖 curl/tar/node/bash
+
   settings.json 合并策略 (merge-settings.cjs):
     hooks       — 按 wf- 关键字匹配更新, 保留用户自定义 hook
     statusLine  — 仅覆盖 WF 自己的 statusLine, 不替换用户自定义

@@ -5,6 +5,18 @@ All notable changes to WF workflow system are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Version follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `wf/bin/upgrade.sh` —— curl 一键升级脚本，无需 git clone；走 GitHub tarball + 临时目录，默认追加 `--force` 应对 hotfix 不 bump VERSION 的情形；支持 `--no-force`、`--dry-run`、`WF_REPO`/`WF_REF` 环境变量。
+- README 新增"升级"小节（顶部"快速开始"和后部"安装"双入口）。
+
+### Fixed
+- `wf/bin/lib/roadmap.cjs` 的 `PHASE_PATTERN` 缺 `/g` flag 导致 `roadmap analyze` 在多阶段 ROADMAP 上死循环 OOM（崩 Node 4GB 堆）；同步在 `roadmap.cjs` / `progress.cjs` 加零长匹配防御。所有由 `/wf-new-project` 生成的多阶段路线图都会触发，进而让 `/wf-autonomous` Step 1 直接崩溃。240 个测试全部通过。
+
+### Docs
+- `CLAUDE.md` Compact instructions 段补一行：与 claude-mem 共存时，`.planning/CONTINUATION.md` 优先于跨项目语义记忆召回。
+
 ## [1.1.0] - 2026-04-14
 
 ### Added
