@@ -26,6 +26,7 @@ function calculateProgress(cwd) {
   const phaseNums = [];
   let match;
   while ((match = PHASE_PATTERN.exec(roadmap)) !== null) {
+    if (match.index === PHASE_PATTERN.lastIndex) PHASE_PATTERN.lastIndex++;
     phaseNums.push(parseFloat(match[1]));
   }
 

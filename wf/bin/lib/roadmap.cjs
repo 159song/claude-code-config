@@ -8,7 +8,9 @@ const fs = require('fs');
 const utils = require('./utils.cjs');
 
 // 同时匹配 ## Phase N: 和 ### Phase N: 格式（H2 和 H3），支持小数点阶段号
-const PHASE_PATTERN = /^#{2,3}\s+Phase\s+(\d[\d.]*?):\s*(.+)$/m;
+// /g 必需：调用方在 while ((m = exec()) !== null) 中迭代多个匹配；缺 /g 会导致 exec
+// 反复匹配第一个 phase 直到堆耗尽（参见 progress.cjs:28、roadmap.cjs:30）。
+const PHASE_PATTERN = /^#{2,3}\s+Phase\s+(\d[\d.]*?):\s*(.+)$/gm;
 
 /**
  * 分析路线图文件，返回所有阶段信息
@@ -28,6 +30,7 @@ function roadmapAnalyze(cwd) {
   let match;
 
   while ((match = PHASE_PATTERN.exec(content)) !== null) {
+    if (match.index === PHASE_PATTERN.lastIndex) PHASE_PATTERN.lastIndex++;
     const numStr = match[1];
     const num = parseFloat(numStr);
     const name = match[2].trim();
