@@ -1,6 +1,5 @@
 ---
-description: Discuss design decisions and gray areas for a specific WF phase, producing CONTEXT.md. Only invoke explicitly via /wf-discuss-phase N; requires phase number and involves interactive decision-making that must not auto-trigger.
-disable-model-invocation: true
+description: Discuss design decisions and gray areas for a specific WF phase, producing CONTEXT.md. Invoke only when the user explicitly runs /wf-discuss-phase N or when the WF dispatcher (wf-do / wf-autonomous) routes here with an explicit phase number — never on a guess, never to "kick off planning" on its own.
 argument-hint: "<phase-number> [--auto] [--chain] [--batch]"
 allowed-tools: Read Write Bash Glob Grep Task AskUserQuestion
 ---

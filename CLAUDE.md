@@ -256,11 +256,13 @@ No project skills found. Add skills to any of: `.claude/skills/`, `.agents/skill
 
 本仓库在 `wf/skills/` 下维护 **26 个 Claude Code 官方 Skill**（不在 GSD 默认扫描路径）。安装 (`./install.sh`) 后落在 `$CLAUDE_DIR/skills/wf-*`，由 Claude Code runtime 自动发现。
 
-- 12 个**开放自动触发**（description 语义匹配）：wf-progress / wf-next / wf-quick / wf-verify-work / wf-propose / wf-apply-change / wf-validate-spec / wf-code-review (+context:fork) / wf-troubleshooting / wf-anti-patterns / wf-4-level-verification / wf-git-conventions
-- 12 个**受控触发**（`disable-model-invocation: true`）：wf-new-project / wf-discuss-phase / wf-plan-phase / wf-execute-phase / wf-autonomous / wf-complete-milestone / wf-archive-change / wf-new-milestone / wf-do / wf-pause / wf-resume / wf-settings
+- 12 个**广义自动触发**（开放给模型按 description 语义匹配）：wf-progress / wf-next / wf-quick / wf-verify-work / wf-propose / wf-apply-change / wf-validate-spec / wf-code-review (+context:fork) / wf-troubleshooting / wf-anti-patterns / wf-4-level-verification / wf-git-conventions
+- 12 个**文案约束触发**（description 中显式声明 "Invoke only when user explicitly runs /wf-... or WF dispatcher routes here"，依靠语义自律 + dispatcher 路由）：wf-new-project / wf-discuss-phase / wf-plan-phase / wf-execute-phase / wf-autonomous / wf-complete-milestone / wf-archive-change / wf-new-milestone / wf-do / wf-pause / wf-resume / wf-settings
 - 2 个**后台知识**（`user-invocable: false`）：wf-gates / wf-worktree-lifecycle
 
-**`commands/wf/` 已全量清空**：Phase E 完成后，所有 22 个命令均迁至 `wf/skills/`（`do` / `pause` / `resume` / `settings` 作为最后一批迁移，均为 `disable-model-invocation: true`）。
+> 说明：早期方案对后 12 个使用 `disable-model-invocation: true` 硬开关，但这会导致 `wf-do` / `wf-autonomous` 等 dispatcher 通过 `Skill()` 转发时被运行时拒绝（"cannot be used with Skill tool due to disable-model-invocation"）。改为文案约束后，dispatcher 链路可正常工作，AI 仍按 description 自律——只在用户显式 `/wf-...` 或 dispatcher 路由时调用。
+
+**`commands/wf/` 已全量清空**：Phase E 完成后，所有 22 个命令均迁至 `wf/skills/`（`do` / `pause` / `resume` / `settings` 作为最后一批迁移）。
 
 完整清单见 `ARCHITECTURE.md` 的 Phase E 章节或 `docs/workflow-diagram.md`。
 <!-- WF:skills-end -->

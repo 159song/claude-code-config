@@ -1,6 +1,5 @@
 ---
-description: Execute a WF phase with wave-based parallel sub-agents. Only invoke explicitly via /wf-execute-phase N; requires phase number and has side effects (file writes, commits, worktree creation) that must not auto-trigger.
-disable-model-invocation: true
+description: Execute a WF phase with wave-based parallel sub-agents (file writes, commits, worktrees). Invoke only when the user explicitly runs /wf-execute-phase N or when the WF dispatcher (wf-do / wf-autonomous) routes here with an explicit phase number — never auto-trigger; side effects are real.
 argument-hint: "<phase-number> [--wave N] [--interactive] [--chain]"
 allowed-tools: Read Write Edit Glob Grep Bash Task AskUserQuestion
 ---

@@ -189,11 +189,13 @@ CLI 对应：`wf-tools change list/show/validate/archive`。Archive 采用 fail-
 
 | 触发策略 | skill 数量 | 代表 | 行为 |
 |---|---|---|---|
-| 开放自动触发 | 9 | `wf-status` / `wf-quick` / `wf-git-conventions` / `wf-code-review` / `wf-verify-work` / `wf-propose` / `wf-apply-change` / `wf-validate-spec` / `wf-troubleshooting` | Claude 读 description 语义匹配后主动调用 |
-| `disable-model-invocation: true` | 12 | `wf-new-project` / `wf-discuss-phase` / `wf-plan-phase` / `wf-execute-phase` / `wf-autonomous` / `wf-complete-milestone` / `wf-archive-change` / `wf-new-milestone` / `wf-do` / `wf-pause` / `wf-resume` / `wf-settings` | 不可逆操作、阶段管道、会话生命周期、敏感配置，只能用户显式触发 |
-| `user-invocable: false` | 4 | `wf-gates` / `wf-worktree-lifecycle` / `wf-4-level-verification` / `wf-anti-patterns` | 后台知识，Claude 决策时参考，不出现在 `/` 菜单 |
+| 广义自动触发 | 12 | `wf-status` / `wf-quick` / `wf-git-conventions` / `wf-code-review` / `wf-verify-work` / `wf-propose` / `wf-apply-change` / `wf-validate-spec` / `wf-troubleshooting` / `wf-anti-patterns` / `wf-4-level-verification` / `wf-next` | Claude 读 description 语义匹配后主动调用 |
+| 文案约束触发 | 12 | `wf-new-project` / `wf-discuss-phase` / `wf-plan-phase` / `wf-execute-phase` / `wf-autonomous` / `wf-complete-milestone` / `wf-archive-change` / `wf-new-milestone` / `wf-do` / `wf-pause` / `wf-resume` / `wf-settings` | description 中声明"Invoke only when user explicitly runs /wf-... or dispatcher routes"——AI 自律 + 允许 `wf-do` / `wf-autonomous` 通过 `Skill()` 路由调用 |
+| `user-invocable: false` | 2 | `wf-gates` / `wf-worktree-lifecycle` | 后台知识，Claude 决策时参考，不出现在 `/` 菜单 |
 
 `wf-code-review` 用 `context: fork + agent: general-purpose`，在 forked subagent 中执行审查，保护主 session context。
+
+> 设计取舍：第二组未使用 `disable-model-invocation: true` 硬开关——此开关会让 `wf-do` / `wf-autonomous` dispatcher 通过 `Skill()` 转发时被运行时拒绝（"cannot be used with Skill tool due to disable-model-invocation"），破坏端到端自动化链路。改为文案约束后，AI 在 description 自律下不会自动触发，dispatcher 链路保持畅通。
 
 ---
 

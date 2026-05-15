@@ -1,6 +1,5 @@
 ---
-description: Run fully autonomous WF mode across phases (discuss → plan → execute → verify chain). Only invoke explicitly via /wf-autonomous; this runs unattended multi-hour work and must never auto-trigger.
-disable-model-invocation: true
+description: Run fully autonomous WF mode across phases (discuss → plan → execute → verify chain). Invoke only when the user explicitly runs /wf-autonomous or when wf-do routes a clear "全自动 / 一键运行" intent here — never auto-trigger on ambient context; this runs unattended multi-hour work.
 argument-hint: "[--from N] [--to N] [--only N] [--interactive]"
 allowed-tools: Read Write Edit Glob Grep Bash Task AskUserQuestion
 ---

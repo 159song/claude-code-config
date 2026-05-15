@@ -8,9 +8,9 @@
 ```
 ┌── L6 语义触发层 (Phase E) ─────────────────────────────────────┐
 │  wf/skills/wf-*/SKILL.md       25 个 Claude Code 官方 Skill    │
-│  - 9 开放自动触发（description 驱动）                           │
-│  - 12 受控触发（disable-model-invocation: true）                │
-│  - 4 后台知识（user-invocable: false）                          │
+│  - 12 广义自动触发（description 驱动）                          │
+│  - 12 文案约束触发（description 声明仅显式/dispatcher 路由）    │
+│  - 2 后台知识（user-invocable: false）                          │
 │  - 1 个 context: fork（wf-code-review）                         │
 │  - commands/wf/ 已全量清空，全部命令由 skill 提供               │
 │  - P0 收敛：wf-next + wf-progress → wf-status                   │
@@ -305,10 +305,12 @@ flowchart TD
 
 | 类别 | Skills |
 |---|---|
-| 命令型 · 开放触发 | wf-status（含查询 + --auto-advance）/ wf-quick / wf-verify-work / wf-propose / wf-apply-change / wf-validate-spec / wf-code-review (+ context: fork) |
-| 命令型 · 受控触发 | wf-new-project / wf-discuss-phase / wf-plan-phase / wf-execute-phase / wf-autonomous / wf-complete-milestone / wf-archive-change / wf-new-milestone / wf-do（意图路由）/ wf-pause / wf-resume / wf-settings |
-| Reference 型 · 开放触发 | wf-troubleshooting / wf-git-conventions（仅 .planning/ 存在时） |
-| Reference 型 · 后台 | wf-gates / wf-worktree-lifecycle / wf-4-level-verification / wf-anti-patterns |
+| 命令型 · 广义自动触发 | wf-status（含查询 + --auto-advance）/ wf-quick / wf-verify-work / wf-propose / wf-apply-change / wf-validate-spec / wf-code-review (+ context: fork) |
+| 命令型 · 文案约束触发 | wf-new-project / wf-discuss-phase / wf-plan-phase / wf-execute-phase / wf-autonomous / wf-complete-milestone / wf-archive-change / wf-new-milestone / wf-do（意图路由）/ wf-pause / wf-resume / wf-settings |
+| Reference 型 · 广义自动触发 | wf-troubleshooting / wf-git-conventions（仅 .planning/ 存在时）/ wf-4-level-verification / wf-anti-patterns |
+| Reference 型 · 后台 | wf-gates / wf-worktree-lifecycle |
+
+> 注：第二组（文案约束触发）原本使用 `disable-model-invocation: true` 硬开关，但该开关会让 `wf-do` / `wf-autonomous` 通过 `Skill()` 转发时报错 `cannot be used with Skill tool due to disable-model-invocation`。已改为在 description 中声明 "Invoke only when user explicitly runs /wf-... or WF dispatcher routes here"，AI 自律 + dispatcher 链路保持可用。
 
 ### Phase E + P0 对用户的可见变化
 

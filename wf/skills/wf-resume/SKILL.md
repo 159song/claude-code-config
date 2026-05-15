@@ -1,6 +1,5 @@
 ---
-description: Resume an interrupted WF workflow from HANDOFF.json, routing to the stopped point. Only invoke explicitly via /wf-resume; AI must never auto-resume even if it detects HANDOFF.json (user may want different path).
-disable-model-invocation: true
+description: Resume an interrupted WF workflow from HANDOFF.json, routing to the stopped point. Invoke only when the user explicitly runs /wf-resume — never auto-resume just because HANDOFF.json exists; the user may have switched tasks or want a different entry point.
 allowed-tools: Read Bash Glob Agent Task
 ---
 
@@ -15,4 +14,4 @@ allowed-tools: Read Bash Glob Agent Task
 
 ## 特别说明
 
-即使 Claude 在会话中看到 `.planning/HANDOFF.json` 存在，也不应该自动 resume——用户可能已切换任务方向，或想从别的阶段重新开始。`disable-model-invocation: true` 强制显式触发。
+即使 Claude 在会话中看到 `.planning/HANDOFF.json` 存在，也不应该自动 resume——用户可能已切换任务方向，或想从别的阶段重新开始。这条纪律由 description 文案约束，AI 必须显式等到 `/wf-resume` 才执行。

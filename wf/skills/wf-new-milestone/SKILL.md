@@ -1,6 +1,5 @@
 ---
-description: Initialize a new WF milestone after a previous one is archived - collects goals, optional research, generates new REQUIREMENTS.md and ROADMAP.md. Only invoke explicitly via /wf-new-milestone; this creates a fresh milestone scope and must not auto-trigger.
-disable-model-invocation: true
+description: Initialize a new WF milestone after a previous one is archived — collects goals, optional research, generates new REQUIREMENTS.md and ROADMAP.md. Invoke only when the user explicitly runs /wf-new-milestone — never auto-trigger; this rewrites scope.
 argument-hint: "[version]"
 allowed-tools: Read Write Edit Bash Glob Grep Task Agent AskUserQuestion
 ---

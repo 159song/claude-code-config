@@ -1,6 +1,5 @@
 ---
-description: Initialize a new WF project - collects context via questions, optionally researches, generates REQUIREMENTS.md and ROADMAP.md. Only invoke explicitly via /wf-new-project; this is an irreversible initialization that must be user-driven.
-disable-model-invocation: true
+description: Initialize a new WF project — collects context via questions, optionally researches, generates REQUIREMENTS.md and ROADMAP.md. Invoke only when the user explicitly runs /wf-new-project or when the WF dispatcher (wf-do) routes a clear "new project" intent here — never auto-trigger on ambient signals; this rewrites .planning/.
 argument-hint: "[--auto]"
 allowed-tools: Read Write Bash Task AskUserQuestion
 ---

@@ -1,6 +1,5 @@
 ---
-description: Archive the current WF milestone and reset for the next one. Only invoke explicitly via /wf-complete-milestone; this is an irreversible archive operation with git tag creation that must be user-approved.
-disable-model-invocation: true
+description: Archive the current WF milestone and reset for the next one. Invoke only when the user explicitly runs /wf-complete-milestone — this creates a git tag and rolls over project scope; never auto-trigger.
 argument-hint: "[version]"
 allowed-tools: Read Write Bash Task AskUserQuestion
 ---

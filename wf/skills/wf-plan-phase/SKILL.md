@@ -1,6 +1,5 @@
 ---
-description: Generate an executable plan for a specific WF phase - research, task decomposition, wave grouping, quality check. Only invoke explicitly via /wf-plan-phase N; requires phase number and has gate-driven revision cycles that must not auto-trigger.
-disable-model-invocation: true
+description: Generate an executable plan for a specific WF phase — research, task decomposition, wave grouping, quality check. Invoke only when the user explicitly runs /wf-plan-phase N or when the WF dispatcher (wf-do / wf-autonomous) routes here with an explicit phase number — never auto-trigger off ambient context.
 argument-hint: "<phase-number> [--chain] [--skip-research]"
 allowed-tools: Read Write Bash Glob Grep Task AskUserQuestion
 ---

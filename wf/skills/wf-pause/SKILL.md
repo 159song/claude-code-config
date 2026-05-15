@@ -1,6 +1,5 @@
 ---
-description: Pause current WF workflow and save a checkpoint to HANDOFF.json + .continue-here.md for cross-session recovery. Only invoke explicitly via /wf-pause; AI must never decide on its own to pause user's in-flight work.
-disable-model-invocation: true
+description: Pause current WF workflow and save a checkpoint to HANDOFF.json + .continue-here.md for cross-session recovery. Invoke only when the user explicitly runs /wf-pause — AI must never decide on its own to pause user's in-flight work, even when context feels low.
 allowed-tools: Read Bash Glob
 ---
 
@@ -14,4 +13,4 @@ allowed-tools: Read Bash Glob
 
 ## 特别说明
 
-会话生命周期操作必须由用户显式发起。`disable-model-invocation: true` 防止 AI "觉得任务差不多了"就主动 pause 用户的工作。
+会话生命周期操作必须由用户显式发起。即使 description 不再用 `disable-model-invocation`，AI 也禁止"觉得任务差不多了"就主动 pause 用户的工作——只有用户明确说 `/wf-pause` 时才执行。

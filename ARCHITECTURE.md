@@ -1075,7 +1075,7 @@ Phase A+B+C+D 累计 **107/107 测试通过**。
 
 Phase A-D 围绕 OpenSpec 借鉴。Phase E 把 WF 全量资产迁移到 Claude Code **官方 Skill 机制**（`.claude/skills/<name>/SKILL.md`）。关键事实：
 - `.claude/commands/*.md` 与 `.claude/skills/<name>/SKILL.md` 等价产生 `/name`（官方合并）
-- Skill 多出 `disable-model-invocation` / `paths` / `context: fork` / `allowed-tools` 等 frontmatter 能力
+- Skill 多出 `paths` / `context: fork` / `allowed-tools` 等 frontmatter 能力（注：`disable-model-invocation: true` 会拒绝任何 `Skill()` 工具调用，包括 dispatcher 转发，因此 WF 不再使用此开关——见下方"触发策略"小节）
 - Skill 的 `description` 驱动 Claude 语义触发，**按需加载 body**，省 context
 
 ### 20 个 Skill 最终清单
@@ -1087,14 +1087,18 @@ Phase A-D 围绕 OpenSpec 借鉴。Phase E 把 WF 全量资产迁移到 Claude C
 | E-1 | wf-troubleshooting | 开放 | reference → skill，零破坏试点 |
 | E-1 | wf-anti-patterns / wf-4-level-verification | **后台**（P0 降级后；原为开放） | 危险动作警告 / 验证模型，Claude 参考，不独立触发 |
 | E-2 | wf-status / wf-quick / wf-verify-work / wf-propose | 开放 | 高频 informational/task，语义触发友好（P0：wf-progress + wf-next 合并为 wf-status） |
-| E-2 | wf-new-project / wf-execute-phase / wf-autonomous / wf-complete-milestone | **受控**（`disable-model-invocation: true`） | 不可逆操作，只能显式 |
+| E-2 | wf-new-project / wf-execute-phase / wf-autonomous / wf-complete-milestone | **文案约束触发**（description 声明仅显式/dispatcher 路由） | 不可逆操作，靠 description 自律而非硬开关——保留 dispatcher (`wf-do`/`wf-autonomous`) `Skill()` 转发能力 |
 | E-3 | wf-git-conventions | 开放（仅 WF 项目） | P0 收紧：description 加 negative trigger，非 .planning/ 仓库不触发 |
 | E-3 | wf-gates / wf-worktree-lifecycle | **后台**（`user-invocable: false`） | Claude 决策时参考，用户不直接调用 |
 | E-4 | wf-code-review | 开放 + **`context: fork`** | forked subagent 跑审查，主 session context 不污染 |
 | E-4 | wf-apply-change / wf-validate-spec | 开放 | 变更生命周期 |
-| E-4 | wf-archive-change / wf-new-milestone | **受控** | 不可逆归档 + 新 milestone 创建 |
+| E-4 | wf-archive-change / wf-new-milestone | **文案约束触发** | 不可逆归档 + 新 milestone 创建 |
 
-**共识**（P0 收敛后）：25 个 skill 中 **9 个开放触发、12 个 `disable-model-invocation: true`、4 个 `user-invocable: false`**。`wf-code-review` 是唯一使用 `context: fork` 的 skill。
+**共识**（更新后）：26 个 skill 中 **12 个广义自动触发、12 个文案约束触发、2 个 `user-invocable: false`**。`wf-code-review` 是唯一使用 `context: fork` 的 skill。
+
+**为什么不用 `disable-model-invocation: true`？**
+该 frontmatter 字段会让 Claude Code runtime 拒绝**任何** `Skill()` 工具调用（含 dispatcher 转发），报错 `Skill <name> cannot be used with Skill tool due to disable-model-invocation`。WF 中 `wf-do`（自然语言路由）和 `wf-autonomous`（discuss→plan→execute→verify 自动链）必须能通过 `Skill()` 调起 `wf-discuss-phase` / `wf-plan-phase` / `wf-execute-phase` 等敏感 skill——硬开关与 dispatcher 设计直接冲突。
+解决方案：在敏感 skill 的 description 中显式声明 "Invoke only when the user explicitly runs /wf-... or when the WF dispatcher (wf-do / wf-autonomous) routes here"，依靠 Claude 对 description 的自律 + dispatcher 显式路由。AI 不会"顺手"触发，但 dispatcher 链路畅通。
 
 ### 目录结构（Phase E 后）
 

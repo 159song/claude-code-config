@@ -1,6 +1,5 @@
 ---
-description: Merge a completed WF change's delta into master specs/ and move the change folder to archive/YYYY-MM-DD-<id>/. Only invoke explicitly via /wf-archive-change; this is an irreversible merge + archive operation that must not auto-trigger.
-disable-model-invocation: true
+description: Merge a completed WF change's delta into master specs/ and move the change folder to archive/YYYY-MM-DD-<id>/. Invoke only when the user explicitly runs /wf-archive-change — this is an irreversible merge + archive operation; AI must not auto-trigger even when a change feels "done".
 argument-hint: "<change-id> [--dry-run]"
 allowed-tools: Read Bash
 ---
